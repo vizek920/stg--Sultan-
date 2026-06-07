@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الأدمن - خمّن الكلمة</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a28;
+    --border: #2a2a45;
+    --gold: #f5c842;
+    --gold2: #e8a020;
+    --team1: #00d4ff;
+    --team2: #ff4d6d;
+    --text: #f0f0ff;
+    --muted: #6a6a9a;
+    --green: #00e676;
+    --red: #ff4d6d;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cairo', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* LOGIN */
+  #login-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-image:
+      radial-gradient(ellipse at 30% 50%, rgba(0,212,255,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 30%, rgba(255,77,109,0.04) 0%, transparent 60%);
+  }
+
+  .login-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 50px 40px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    animation: fadeInUp 0.5s ease;
+  }
+
+  .login-icon { font-size: 60px; display: block; margin-bottom: 20px; }
+  .login-title {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+  .login-sub { color: var(--muted); margin-bottom: 30px; font-size: 14px; }
+
+  .field {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 16px;
+    font-family: 'Cairo', sans-serif;
+    color: var(--text);
+    width: 100%;
+    text-align: center;
+    margin-bottom: 16px;
+    transition: border-color 0.3s;
+  }
+
+  .field:focus { border-color: var(--gold); outline: none; }
+  .field::placeholder { color: var(--muted); }
+
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
+    color: #000;
+    font-size: 18px;
+    font-weight: 900;
+    font-family: 'Cairo', sans-serif;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 20px rgba(245,200,66,0.3);
+  }
+
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(245,200,66,0.4); }
+
+  /* ADMIN PANEL */
+  #admin-screen { display: none; min-height: 100vh; }
+
+  .admin-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+
+  .admin-logo { font-size: 20px; font-weight: 900; color: var(--gold); }
+  .admin-logo span { color: var(--muted); font-weight: 400; font-size: 14px; margin-right: 8px; }
+
+  .header-actions { display: flex; gap: 12px; align-items: center; }
+
+  .stat-badge {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .stat-badge strong { color: var(--gold); }
+
+  .btn-logout {
+    padding: 8px 18px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'Cairo', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+  .btn-game-link {
+    padding: 8px 18px;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .admin-body {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    height: calc(100vh - 65px);
+    overflow: hidden;
+  }
+
+  /* ADD FORM */
+  .add-panel {
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .panel-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .form-input, .form-select {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-family: 'Cairo', sans-serif;
+    color: var(--text);
+    transition: border-color 0.3s;
+  }
+
+  .form-input:focus, .form-select:focus {
+    border-color: var(--gold);
+    outline: none;
+  }
+
+  .form-input::placeholder { color: var(--muted); }
+  .form-select { cursor: pointer; }
+  .form-select option { background: var(--card); }
+
+  .imgs-grid-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .img-preview-wrap {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid var(--border);
+    aspect-ratio: 4/3;
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+    transition: border-color 0.3s;
+  }
+
+  .img-preview-wrap:hover { border-color: var(--gold); }
+  .img-preview-wrap .num { font-size: 20px; font-weight: 900; color: var(--border); }
+  .img-preview-wrap .lbl { font-size: 10px; color: var(--muted); }
+  .img-preview-wrap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .img-preview-wrap .remove-img {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    background: rgba(255,77,109,0.8);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 22px; height: 22px;
+    font-size: 12px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .img-preview-wrap:hover .remove-img { display: flex; }
+
+  .upload-note {
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    line-height: 1.6;
+  }
+
+  .upload-note a { color: var(--gold); text-decoration: none; }
+
+  .btn-add {
+    padding: 14px;
+    background: linear-gradient(135deg, var(--green) 0%, #00b860 100%);
+    color: #000;
+    font-size: 16px;
+    font-weight: 900;
+    font-family: 'Cairo', sans-serif;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 20px rgba(0,230,118,0.25);
+  }
+
+  .btn-add:hover { transform: translateY(-2px); }
+  .btn-add:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* QUESTIONS LIST */
+  .list-panel {
+    padding: 24px;
+    overflow-y: auto;
+  }
+
+  .list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .list-title { font-size: 20px; font-weight: 900; }
+
+  .search-box {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-family: 'Cairo', sans-serif;
+    color: var(--text);
+    width: 240px;
+  }
+  .search-box:focus { border-color: var(--gold); outline: none; }
+
+  .questions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .q-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .q-card:hover { border-color: var(--gold); box-shadow: 0 4px 20px rgba(245,200,66,0.1); }
+
+  .q-card.inactive { opacity: 0.5; }
+
+  .q-imgs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    height: 120px;
+    background: var(--surface);
+  }
+
+  .q-imgs img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .q-imgs .no-img {
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--border);
+    font-size: 20px;
+  }
+
+  .q-body { padding: 14px; }
+
+  .q-answer {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+
+  .q-hint { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+
+  .q-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .q-category {
+    background: var(--surface);
+    border-radius: 100px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .q-actions { display: flex; gap: 6px; }
+
+  .btn-toggle, .btn-delete {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: 'Cairo', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid;
+  }
+
+  .btn-toggle {
+    border-color: var(--green);
+    color: var(--green);
+    background: transparent;
+  }
+  .btn-toggle:hover { background: rgba(0,230,118,0.1); }
+  .btn-toggle.inactive {
+    border-color: var(--muted);
+    color: var(--muted);
+  }
+
+  .btn-delete {
+    border-color: var(--red);
+    color: var(--red);
+    background: transparent;
+  }
+  .btn-delete:hover { background: rgba(255,77,109,0.1); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 700;
+    z-index: 300;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--green); color: var(--green); }
+  .toast.error { border-color: var(--red); color: var(--red); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-state .icon { font-size: 50px; margin-bottom: 16px; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+  .divider { height: 1px; background: var(--border); }
+
+  /* LOADING */
+  .spinner {
+    width: 30px; height: 30px;
+    border: 3px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 40px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <span class="login-icon">🔐</span>
+    <div class="login-title">لوحة الأدمن</div>
+    <div class="login-sub">أدخل كلمة المرور للوصول</div>
+    <input class="field" type="password" id="pw-input" placeholder="كلمة المرور"
+      onkeydown="if(event.key==='Enter') login()">
+    <button class="btn-primary" onclick="login()">دخول</button>
+  </div>
+</div>
+
+<!-- ADMIN SCREEN -->
+<div id="admin-screen">
+  <div class="admin-header">
+    <div class="admin-logo">
+      ⚙️ لوحة الأدمن
+      <span>خمّن الكلمة</span>
+    </div>
+    <div class="header-actions">
+      <div class="stat-badge">الأسئلة: <strong id="total-count">—</strong></div>
+      <a href="index.html" class="btn-game-link">▶ الذهاب للعبة</a>
+      <button class="btn-logout" onclick="logout()">خروج</button>
+    </div>
+  </div>
+
+  <div class="admin-body">
+    <!-- QUESTIONS LIST -->
+    <div class="list-panel">
+      <div class="list-header">
+        <div class="list-title">📋 قائمة الأسئلة</div>
+        <input class="search-box" type="text" id="search-box" placeholder="🔍 بحث..." oninput="filterQuestions()">
+      </div>
+      <div id="q-list"></div>
+    </div>
+
+    <!-- ADD PANEL -->
+    <div class="add-panel">
+      <div class="panel-title">➕ إضافة سؤال جديد</div>
+      <div class="divider"></div>
+
+      <div class="form-field">
+        <label class="form-label">الإجابة الصحيحة *</label>
+        <input class="form-input" id="f-answer" type="text" placeholder="مثال: برج إيفل">
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">تلميح (اختياري)</label>
+        <input class="form-input" id="f-hint" type="text" placeholder="مثال: معلم سياحي">
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">التصنيف</label>
+        <select class="form-select" id="f-category">
+          <option value="عام">عام</option>
+          <option value="رياضة">رياضة</option>
+          <option value="أفلام">أفلام</option>
+          <option value="موسيقى">موسيقى</option>
+          <option value="جغرافيا">جغرافيا</option>
+          <option value="تاريخ">تاريخ</option>
+          <option value="علوم">علوم</option>
+          <option value="شخصيات">شخصيات</option>
+          <option value="طعام">طعام</option>
+          <option value="آخر">آخر</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">الصور الأربع (روابط) *</label>
+        <div class="imgs-grid-form">
+          <div class="img-preview-wrap" onclick="focusInput('f-img1')" id="prev1">
+            <div class="num">1</div>
+            <div class="lbl">الصورة الأولى</div>
+            <button class="remove-img" onclick="event.stopPropagation(); clearImg(1)">✕</button>
+          </div>
+          <div class="img-preview-wrap" onclick="focusInput('f-img2')" id="prev2">
+            <div class="num">2</div>
+            <div class="lbl">الصورة الثانية</div>
+            <button class="remove-img" onclick="event.stopPropagation(); clearImg(2)">✕</button>
+          </div>
+          <div class="img-preview-wrap" onclick="focusInput('f-img3')" id="prev3">
+            <div class="num">3</div>
+            <div class="lbl">الصورة الثالثة</div>
+            <button class="remove-img" onclick="event.stopPropagation(); clearImg(3)">✕</button>
+          </div>
+          <div class="img-preview-wrap" onclick="focusInput('f-img4')" id="prev4">
+            <div class="num">4</div>
+            <div class="lbl">الصورة الرابعة</div>
+            <button class="remove-img" onclick="event.stopPropagation(); clearImg(4)">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">رابط الصورة 1</label>
+        <input class="form-input" id="f-img1" type="url" placeholder="https://..." oninput="previewImg(1)">
+      </div>
+      <div class="form-field">
+        <label class="form-label">رابط الصورة 2</label>
+        <input class="form-input" id="f-img2" type="url" placeholder="https://..." oninput="previewImg(2)">
+      </div>
+      <div class="form-field">
+        <label class="form-label">رابط الصورة 3</label>
+        <input class="form-input" id="f-img3" type="url" placeholder="https://..." oninput="previewImg(3)">
+      </div>
+      <div class="form-field">
+        <label class="form-label">رابط الصورة 4</label>
+        <input class="form-input" id="f-img4" type="url" placeholder="https://..." oninput="previewImg(4)">
+      </div>
+
+      <div class="upload-note">
+        💡 <strong>كيف ترفع الصور؟</strong><br>
+        1. افتح <a href="https://cloudinary.com" target="_blank">Cloudinary</a><br>
+        2. اضغط Upload → اختر الصورة<br>
+        3. انقر على الصورة المرفوعة → Copy URL<br>
+        4. الصق الرابط هنا
+      </div>
+
+      <button class="btn-add" id="add-btn" onclick="addQuestion()">➕ إضافة السؤال</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://xeukоqidoapdelgvxavl.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhldWtvcWlkb2FwZGVsZ3Z4YXZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MzM2OTksImV4cCI6MjA5NjQwOTY5OX0.yRLUSTZYBOVIOZqIV4EDPerrbx5LexzmjKd4z9xjYPk';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const ADMIN_PASSWORD = 'admin2024';
+
+let allQuestions = [];
+
+// LOGIN
+function login() {
+  const pw = document.getElementById('pw-input').value;
+  if (pw === ADMIN_PASSWORD) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'block';
+    loadQuestions();
+  } else {
+    showToast('❌ كلمة المرور خاطئة', 'error');
+    document.getElementById('pw-input').value = '';
+  }
+}
+
+function logout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('admin-screen').style.display = 'none';
+  document.getElementById('pw-input').value = '';
+}
+
+// LOAD
+async function loadQuestions() {
+  document.getElementById('q-list').innerHTML = '<div class="spinner"></div>';
+  const { data, error } = await sb.from('questions').select('*').order('id', { ascending: false });
+  if (error) { showToast('خطأ في التحميل', 'error'); return; }
+  allQuestions = data || [];
+  document.getElementById('total-count').textContent = allQuestions.length;
+  renderQuestions(allQuestions);
+}
+
+function renderQuestions(list) {
+  const container = document.getElementById('q-list');
+  if (!list.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">📭</div>لا توجد أسئلة بعد</div>`;
+    return;
+  }
+  container.innerHTML = `<div class="questions-grid">${list.map(q => qCard(q)).join('')}</div>`;
+}
+
+function qCard(q) {
+  const imgs = [q.image1, q.image2, q.image3, q.image4];
+  const imgHtml = imgs.map(src =>
+    src ? `<img src="${src}" onerror="this.style.display='none'">` : `<div class="no-img">🖼</div>`
+  ).join('');
+
+  return `
+  <div class="q-card ${q.active ? '' : 'inactive'}" id="qcard-${q.id}">
+    <div class="q-imgs">${imgHtml}</div>
+    <div class="q-body">
+      <div class="q-answer">${q.answer}</div>
+      <div class="q-hint">${q.hint || '—'}</div>
+      <div class="q-meta">
+        <span class="q-category">${q.category || 'عام'}</span>
+        <div class="q-actions">
+          <button class="btn-toggle ${q.active ? '' : 'inactive'}"
+            onclick="toggleQuestion(${q.id}, ${q.active})">
+            ${q.active ? '✓ نشط' : '○ معطل'}
+          </button>
+          <button class="btn-delete" onclick="deleteQuestion(${q.id})">حذف</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function filterQuestions() {
+  const q = document.getElementById('search-box').value.toLowerCase();
+  const filtered = allQuestions.filter(item =>
+    item.answer.toLowerCase().includes(q) ||
+    (item.hint || '').toLowerCase().includes(q) ||
+    (item.category || '').toLowerCase().includes(q)
+  );
+  renderQuestions(filtered);
+}
+
+// ADD
+async function addQuestion() {
+  const answer = document.getElementById('f-answer').value.trim();
+  const hint   = document.getElementById('f-hint').value.trim();
+  const cat    = document.getElementById('f-category').value;
+  const img1   = document.getElementById('f-img1').value.trim();
+  const img2   = document.getElementById('f-img2').value.trim();
+  const img3   = document.getElementById('f-img3').value.trim();
+  const img4   = document.getElementById('f-img4').value.trim();
+
+  if (!answer) { showToast('⚠️ أدخل الإجابة', 'error'); return; }
+  if (!img1 || !img2 || !img3 || !img4) { showToast('⚠️ أدخل روابط الصور الأربع', 'error'); return; }
+
+  const btn = document.getElementById('add-btn');
+  btn.disabled = true;
+  btn.textContent = 'جاري الإضافة...';
+
+  const { error } = await sb.from('questions').insert({
+    answer, hint, category: cat,
+    image1: img1, image2: img2, image3: img3, image4: img4,
+    active: true
+  });
+
+  btn.disabled = false;
+  btn.textContent = '➕ إضافة السؤال';
+
+  if (error) { showToast('❌ خطأ: ' + error.message, 'error'); return; }
+
+  showToast('✅ تم إضافة السؤال بنجاح!', 'success');
+  clearForm();
+  loadQuestions();
+}
+
+function clearForm() {
+  ['f-answer','f-hint','f-img1','f-img2','f-img3','f-img4'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-category').value = 'عام';
+  [1,2,3,4].forEach(i => {
+    const p = document.getElementById(`prev${i}`);
+    const img = p.querySelector('img');
+    if (img) img.remove();
+  });
+}
+
+// TOGGLE
+async function toggleQuestion(id, current) {
+  const { error } = await sb.from('questions').update({ active: !current }).eq('id', id);
+  if (error) { showToast('خطأ', 'error'); return; }
+  showToast(current ? '⏸ تم تعطيل السؤال' : '▶ تم تفعيل السؤال', 'success');
+  loadQuestions();
+}
+
+// DELETE
+async function deleteQuestion(id) {
+  if (!confirm('هل تريد حذف هذا السؤال نهائياً؟')) return;
+  const { error } = await sb.from('questions').delete().eq('id', id);
+  if (error) { showToast('خطأ في الحذف', 'error'); return; }
+  showToast('🗑 تم الحذف', 'success');
+  loadQuestions();
+}
+
+// IMAGE PREVIEW
+function previewImg(n) {
+  const src = document.getElementById(`f-img${n}`).value.trim();
+  const wrap = document.getElementById(`prev${n}`);
+  let img = wrap.querySelector('img');
+  if (src) {
+    if (!img) { img = document.createElement('img'); wrap.appendChild(img); }
+    img.src = src;
+    img.onerror = () => img.remove();
+  } else if (img) {
+    img.remove();
+  }
+}
+
+function clearImg(n) {
+  document.getElementById(`f-img${n}`).value = '';
+  const wrap = document.getElementById(`prev${n}`);
+  const img = wrap.querySelector('img');
+  if (img) img.remove();
+}
+
+function focusInput(id) { document.getElementById(id).focus(); }
+
+// TOAST
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+</script>
+</body>
+</html>
