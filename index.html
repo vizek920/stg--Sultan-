@@ -4,1451 +4,1097 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>خمّن الكلمة</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --card: #1a1a28;
-    --border: #2a2a45;
-    --gold: #f5c842;
-    --gold2: #e8a020;
-    --team1: #00d4ff;
-    --team2: #ff4d6d;
-    --text: #f0f0ff;
-    --muted: #6a6a9a;
-    --green: #00e676;
-    --glow1: rgba(0,212,255,0.15);
-    --glow2: rgba(255,77,109,0.15);
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Cairo', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-    background-image:
-      radial-gradient(ellipse at 20% 50%, rgba(0,212,255,0.04) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 20%, rgba(255,77,109,0.04) 0%, transparent 60%),
-      radial-gradient(ellipse at 50% 80%, rgba(245,200,66,0.03) 0%, transparent 50%);
-  }
-
-  /* ===== STARS BACKGROUND ===== */
-  .stars {
-    position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background-image:
-      radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.4) 0%, transparent 100%),
-      radial-gradient(1px 1px at 30% 70%, rgba(255,255,255,0.3) 0%, transparent 100%),
-      radial-gradient(1px 1px at 60% 25%, rgba(255,255,255,0.4) 0%, transparent 100%),
-      radial-gradient(1px 1px at 80% 55%, rgba(255,255,255,0.3) 0%, transparent 100%),
-      radial-gradient(1px 1px at 45% 90%, rgba(255,255,255,0.2) 0%, transparent 100%),
-      radial-gradient(2px 2px at 70% 10%, rgba(245,200,66,0.5) 0%, transparent 100%),
-      radial-gradient(2px 2px at 15% 40%, rgba(0,212,255,0.4) 0%, transparent 100%),
-      radial-gradient(1px 1px at 90% 80%, rgba(255,77,109,0.4) 0%, transparent 100%);
-  }
-
-  /* ===== SCREENS ===== */
-  .screen { display: none; position: relative; z-index: 1; }
-  .screen.active { display: flex; flex-direction: column; min-height: 100vh; }
-
-  /* ===== SETUP SCREEN ===== */
-  #setup-screen {
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-  }
-
-  .logo-section {
-    text-align: center;
-    margin-bottom: 50px;
-    animation: fadeInDown 0.8s ease;
-  }
-
-  .logo-icon {
-    font-size: 80px;
-    display: block;
-    margin-bottom: 16px;
-    filter: drop-shadow(0 0 30px rgba(245,200,66,0.5));
-    animation: float 3s ease-in-out infinite;
-  }
-
-  @keyframes float {
-    0%,100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
-
-  .logo-title {
-    font-family: 'Tajawal', sans-serif;
-    font-size: 56px;
-    font-weight: 900;
-    background: linear-gradient(135deg, var(--gold) 0%, #fff 50%, var(--gold2) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    line-height: 1.1;
-    letter-spacing: -1px;
-  }
-
-  .logo-sub {
-    color: var(--muted);
-    font-size: 16px;
-    margin-top: 8px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-  }
-
-  .setup-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 40px;
-    width: 100%;
-    max-width: 560px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
-    animation: fadeInUp 0.8s ease 0.2s both;
-  }
-
-  .teams-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 30px;
-  }
-
-  .team-input-group { position: relative; }
-
-  .team-label {
-    display: block;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-  }
-
-  .team-label.t1 { color: var(--team1); }
-  .team-label.t2 { color: var(--team2); }
-
-  .team-input {
-    width: 100%;
-    background: var(--surface);
-    border: 2px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 16px;
-    font-size: 16px;
-    font-family: 'Cairo', sans-serif;
-    color: var(--text);
-    transition: all 0.3s;
-    text-align: center;
-  }
-
-  .team-input.t1:focus { border-color: var(--team1); box-shadow: 0 0 0 4px rgba(0,212,255,0.1); outline: none; }
-  .team-input.t2:focus { border-color: var(--team2); box-shadow: 0 0 0 4px rgba(255,77,109,0.1); outline: none; }
-
-  .vs-divider {
-    text-align: center;
-    font-size: 24px;
-    font-weight: 900;
-    color: var(--gold);
-    margin: 10px 0 30px;
-    text-shadow: 0 0 20px rgba(245,200,66,0.5);
-  }
-
-  .btn-start {
-    width: 100%;
-    padding: 18px;
-    background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
-    color: #000;
-    font-size: 20px;
-    font-weight: 900;
-    font-family: 'Cairo', sans-serif;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-    transition: all 0.3s;
-    letter-spacing: 1px;
-    box-shadow: 0 8px 30px rgba(245,200,66,0.3);
-  }
-
-  .btn-start:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(245,200,66,0.5);
-  }
-
-  .btn-start:active { transform: translateY(0); }
-
-  /* ===== GAME SCREEN ===== */
-  #game-screen { padding: 0; }
-
-  .scoreboard {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    padding: 16px 24px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-  }
-
-  .team-score {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .team-score.right { justify-content: flex-end; }
-
-  .score-name {
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 1px;
-  }
-
-  .score-points {
-    font-size: 36px;
-    font-weight: 900;
-    font-family: 'Tajawal', sans-serif;
-    line-height: 1;
-    transition: all 0.5s;
-  }
-
-  .score-points.t1 { color: var(--team1); text-shadow: 0 0 20px rgba(0,212,255,0.4); }
-  .score-points.t2 { color: var(--team2); text-shadow: 0 0 20px rgba(255,77,109,0.4); }
-
-  .score-indicator {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    animation: pulse-dot 2s infinite;
-  }
-  .score-indicator.t1 { background: var(--team1); box-shadow: 0 0 10px var(--team1); }
-  .score-indicator.t2 { background: var(--team2); box-shadow: 0 0 10px var(--team2); }
-
-  @keyframes pulse-dot {
-    0%,100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-  }
-
-  .mid-info {
-    text-align: center;
-    font-size: 13px;
-    color: var(--muted);
-  }
-
-  .mid-info strong {
-    display: block;
-    font-size: 18px;
-    color: var(--gold);
-    font-weight: 900;
-  }
-
-  /* GAME CONTENT */
-  .game-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 30px 20px;
-    max-width: 1100px;
-    margin: 0 auto;
-    width: 100%;
-  }
-
-  .question-header {
-    text-align: center;
-    margin-bottom: 30px;
-  }
-
-  .question-counter {
-    display: inline-block;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    padding: 6px 20px;
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 10px;
-  }
-
-  /* POINTS DISPLAY */
-  .points-display {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    margin-bottom: 20px;
-  }
-
-  .points-value {
-    font-family: 'Tajawal', sans-serif;
-    font-size: 72px;
-    font-weight: 900;
-    color: var(--gold);
-    text-shadow: 0 0 40px rgba(245,200,66,0.5);
-    line-height: 1;
-    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-
-  .points-label {
-    font-size: 13px;
-    color: var(--muted);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-  }
-
-  /* IMAGES GRID */
-  .images-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    width: 100%;
-    max-width: 800px;
-    margin-bottom: 24px;
-  }
-
-  .img-cell {
-    position: relative;
-    border-radius: 16px;
-    overflow: hidden;
-    aspect-ratio: 4/3;
-    border: 2px solid var(--border);
-    background: var(--card);
-    transition: all 0.5s;
-  }
-
-  .img-cell.revealed {
-    border-color: var(--gold);
-    box-shadow: 0 0 20px rgba(245,200,66,0.2);
-  }
-
-  .img-cell img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    display: block;
-    filter: blur(40px);
-    transform: scale(1.15);
-    transition: filter 0.8s ease, transform 0.8s ease;
-  }
-
-  .img-cell.revealed img {
-    filter: blur(0px);
-    transform: scale(1);
-  }
-
-  .img-overlay {
-    position: absolute;
-    inset: 0;
-    background: var(--card);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 10px;
-    transition: all 0.5s;
-    z-index: 2;
-  }
-
-  .img-overlay.hidden-overlay {
-    background: linear-gradient(135deg, #1a1a28 0%, #0f0f1a 100%);
-  }
-
-  .img-overlay.visible-overlay { opacity: 0; pointer-events: none; }
-
-  .img-number {
-    font-size: 40px;
-    font-weight: 900;
-    color: var(--muted);
-    font-family: 'Tajawal', sans-serif;
-  }
-
-  .img-lock { font-size: 30px; }
-
-  /* TIMER SECTION */
-  .timer-section {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 24px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 16px 24px;
-    width: 100%;
-    max-width: 800px;
-  }
-
-  .timer-label { font-size: 13px; color: var(--muted); white-space: nowrap; }
-
-  .timer-bar-wrap {
-    flex: 1;
-    height: 8px;
-    background: var(--surface);
-    border-radius: 100px;
-    overflow: hidden;
-  }
-
-  .timer-bar {
-    height: 100%;
-    border-radius: 100px;
-    background: linear-gradient(90deg, var(--gold2), var(--gold));
-    transition: width 1s linear, background 1s;
-    box-shadow: 0 0 10px rgba(245,200,66,0.4);
-  }
-
-  .timer-bar.warning {
-    background: linear-gradient(90deg, #ff6b35, var(--team2));
-    box-shadow: 0 0 10px rgba(255,77,109,0.4);
-  }
-
-  .timer-count {
-    font-size: 22px;
-    font-weight: 900;
-    font-family: 'Tajawal', sans-serif;
-    color: var(--gold);
-    min-width: 32px;
-    text-align: center;
-    transition: color 0.3s;
-  }
-
-  .timer-count.warning { color: var(--team2); }
-
-  /* REVEAL BUTTON */
-  .reveal-btn {
-    padding: 12px 28px;
-    background: transparent;
-    border: 2px solid var(--border);
-    border-radius: 12px;
-    color: var(--muted);
-    font-size: 14px;
-    font-family: 'Cairo', sans-serif;
-    cursor: pointer;
-    transition: all 0.3s;
-    white-space: nowrap;
-  }
-
-  .reveal-btn:not(:disabled):hover {
-    border-color: var(--gold);
-    color: var(--gold);
-    background: rgba(245,200,66,0.05);
-  }
-
-  .reveal-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-  /* ANSWER SECTION */
-  .answer-section {
-    width: 100%;
-    max-width: 800px;
-    display: flex;
-    gap: 12px;
-    align-items: stretch;
-  }
-
-  .answer-wrap { position: relative; flex: 1; }
-
-  .answer-input {
-    width: 100%;
-    background: var(--card);
-    border: 2px solid var(--border);
-    border-radius: 14px;
-    padding: 18px 20px;
-    font-size: 18px;
-    font-family: 'Cairo', sans-serif;
-    color: var(--text);
-    transition: all 0.3s;
-    text-align: right;
-  }
-
-  .answer-input:focus {
-    border-color: var(--gold);
-    box-shadow: 0 0 0 4px rgba(245,200,66,0.1);
-    outline: none;
-  }
-
-  .answer-input::placeholder { color: var(--muted); }
-
-  .btn-answer {
-    padding: 18px 32px;
-    background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
-    color: #000;
-    font-size: 18px;
-    font-weight: 900;
-    font-family: 'Cairo', sans-serif;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-    transition: all 0.3s;
-    white-space: nowrap;
-    box-shadow: 0 4px 20px rgba(245,200,66,0.3);
-  }
-
-  .btn-answer:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(245,200,66,0.4);
-  }
-
-  /* TEAM BUTTONS */
-  .team-btns {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    width: 100%;
-    max-width: 800px;
-    margin-top: 14px;
-  }
-
-  .btn-team {
-    padding: 14px;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 700;
-    font-family: 'Cairo', sans-serif;
-    border: 2px solid;
-    cursor: pointer;
-    transition: all 0.3s;
-    background: transparent;
-  }
-
-  .btn-team.t1 {
-    border-color: var(--team1);
-    color: var(--team1);
-  }
-  .btn-team.t1:hover {
-    background: var(--glow1);
-    box-shadow: 0 0 20px rgba(0,212,255,0.2);
-  }
-
-  .btn-team.t2 {
-    border-color: var(--team2);
-    color: var(--team2);
-  }
-  .btn-team.t2:hover {
-    background: var(--glow2);
-    box-shadow: 0 0 20px rgba(255,77,109,0.2);
-  }
-
-  /* RESULT OVERLAY */
-  .result-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 200;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(10px);
-    animation: fadeIn 0.3s ease;
-  }
-
-  .result-card {
-    background: var(--card);
-    border-radius: 28px;
-    padding: 50px 60px;
-    text-align: center;
-    max-width: 500px;
-    width: 90%;
-    border: 1px solid var(--border);
-    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
-    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-
-  @keyframes popIn {
-    from { transform: scale(0.7); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
-
-  .result-emoji { font-size: 80px; display: block; margin-bottom: 20px; }
-  .result-title { font-size: 28px; font-weight: 900; margin-bottom: 10px; }
-  .result-sub { color: var(--muted); font-size: 16px; margin-bottom: 30px; }
-  .result-points {
-    font-size: 64px;
-    font-weight: 900;
-    font-family: 'Tajawal', sans-serif;
-    color: var(--gold);
-    text-shadow: 0 0 30px rgba(245,200,66,0.5);
-    margin-bottom: 30px;
-    display: block;
-  }
-
-  .btn-next {
-    padding: 16px 40px;
-    background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
-    color: #000;
-    font-size: 18px;
-    font-weight: 900;
-    font-family: 'Cairo', sans-serif;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-    transition: all 0.3s;
-    box-shadow: 0 8px 30px rgba(245,200,66,0.3);
-  }
-
-  .btn-next:hover { transform: translateY(-2px); }
-
-  /* FINAL SCREEN */
-  #final-screen {
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-    text-align: center;
-  }
-
-  .trophy { font-size: 100px; animation: float 3s ease-in-out infinite; display: block; margin-bottom: 20px; }
-
-  .winner-title {
-    font-size: 18px;
-    color: var(--muted);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-  }
-
-  .winner-name {
-    font-family: 'Tajawal', sans-serif;
-    font-size: 60px;
-    font-weight: 900;
-    background: linear-gradient(135deg, var(--gold) 0%, #fff 50%, var(--gold2) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 40px;
-  }
-
-  .final-scores {
-    display: flex;
-    gap: 30px;
-    justify-content: center;
-    margin-bottom: 40px;
-    flex-wrap: wrap;
-  }
-
-  .final-score-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 30px 40px;
-    min-width: 160px;
-  }
-
-  .final-score-card .name { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
-  .final-score-card .pts { font-size: 48px; font-weight: 900; font-family: 'Tajawal', sans-serif; }
-  .final-score-card.winner { border-color: var(--gold); box-shadow: 0 0 30px rgba(245,200,66,0.15); }
-
-  /* TOAST */
-  .toast {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%) translateY(100px);
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    padding: 14px 28px;
-    font-size: 15px;
-    font-weight: 700;
-    z-index: 300;
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    white-space: nowrap;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-  }
-  .toast.show { transform: translateX(-50%) translateY(0); }
-  .toast.correct { border-color: var(--green); color: var(--green); }
-  .toast.wrong { border-color: var(--team2); color: var(--team2); }
-
-  /* CONFETTI */
-  .confetti-piece {
-    position: fixed;
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
-    pointer-events: none;
-    z-index: 999;
-    animation: confettiFall linear forwards;
-  }
-
-  @keyframes confettiFall {
-    0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
-    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
-  }
-
-  /* ANIMATIONS */
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes fadeInDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-
-  @keyframes scoreUp {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.3); }
-    100% { transform: scale(1); }
-  }
-
-  .score-bump { animation: scoreUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
-
-  /* LOADING */
-  .loading-screen {
-    position: fixed; inset: 0; z-index: 500;
-    background: var(--bg);
-    display: flex; align-items: center; justify-content: center;
-    flex-direction: column; gap: 20px;
-  }
-  .loading-spinner {
-    width: 50px; height: 50px;
-    border: 3px solid var(--border);
-    border-top-color: var(--gold);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .score-zero { opacity: 0.4; }
-
-  /* HINT */
-  .hint-badge {
-    display: inline-block;
-    background: rgba(245,200,66,0.1);
-    border: 1px solid rgba(245,200,66,0.3);
-    border-radius: 100px;
-    padding: 5px 16px;
-    font-size: 13px;
-    color: var(--gold);
-    margin-top: 8px;
-  }
-
-  .admin-link {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    font-size: 11px;
-    color: var(--border);
-    text-decoration: none;
-    z-index: 10;
-    transition: color 0.3s;
-  }
-  .admin-link:hover { color: var(--muted); }
-
-  /* SKIP BUTTON */
-  .btn-skip {
-    padding: 12px 28px;
-    background: transparent;
-    border: 2px solid #ff6b35;
-    border-radius: 12px;
-    color: #ff6b35;
-    font-size: 15px;
-    font-weight: 700;
-    font-family: 'Cairo', sans-serif;
-    cursor: pointer;
-    transition: all 0.3s;
-    margin-top: 14px;
-  }
-  .btn-skip:hover {
-    background: rgba(255,107,53,0.1);
-    box-shadow: 0 0 20px rgba(255,107,53,0.2);
-    transform: translateY(-1px);
-  }
-
-  /* SKIP RESULT CARD */
-  .result-card.skipped { border-color: rgba(255,107,53,0.4); }
-  .result-card.skipped .result-emoji-skip { font-size: 70px; display: block; margin-bottom: 16px; }
-  .skip-answer-reveal {
-    background: rgba(245,200,66,0.08);
-    border: 1px solid rgba(245,200,66,0.3);
-    border-radius: 16px;
-    padding: 20px 30px;
-    margin: 16px 0 24px;
-  }
-  .skip-answer-label { font-size: 12px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
-  .skip-answer-text {
-    font-size: 36px;
-    font-weight: 900;
-    font-family: 'Tajawal', sans-serif;
-    color: var(--gold);
-    text-shadow: 0 0 20px rgba(245,200,66,0.4);
-  }
-
-  /* ===== TRANSITION SCREEN ===== */
-  .transition-screen {
-    position: fixed;
-    inset: 0;
-    z-index: 400;
-    background: var(--bg);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 30px;
-    animation: fadeIn 0.3s ease;
-  }
-
-  .trans-label {
-    font-size: 14px;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .trans-number {
-    font-family: 'Tajawal', sans-serif;
-    font-size: 120px;
-    font-weight: 900;
-    background: linear-gradient(135deg, var(--gold) 0%, #fff 50%, var(--gold2) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    line-height: 1;
-    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    filter: drop-shadow(0 0 40px rgba(245,200,66,0.3));
-  }
-
-  .trans-q-label {
-    font-size: 18px;
-    color: var(--muted);
-    font-weight: 700;
-  }
-
-  .trans-countdown {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-
-  .trans-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--border);
-    transition: background 0.3s, transform 0.3s;
-  }
-
-  .trans-dot.active {
-    background: var(--gold);
-    transform: scale(1.4);
-    box-shadow: 0 0 10px rgba(245,200,66,0.5);
-  }
-
+:root {
+  --bg: #03030f;
+  --surface: #07071a;
+  --card: #0d0d24;
+  --card2: #12122e;
+  --border: #1e1e45;
+  --border2: #2a2a60;
+  --gold: #f5c842;
+  --gold2: #e8a020;
+  --gold3: #ffd97d;
+  --cyan: #00d4ff;
+  --pink: #ff4d6d;
+  --green: #00e676;
+  --purple: #7c3aed;
+  --text: #eeeeff;
+  --muted: #4a4a7a;
+  --muted2: #7a7aaa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Cairo',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* ======= SPACE BACKGROUND ======= */
+#space-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+.nebula{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 20%, rgba(100,50,200,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 85% 70%, rgba(0,100,200,0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 50% 50%, rgba(20,0,60,0.4) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 70% 20%, rgba(200,80,50,0.08) 0%, transparent 50%);
+  animation: nebulaDrift 20s ease-in-out infinite alternate;
+}
+@keyframes nebulaDrift{
+  0%{opacity:0.7;transform:scale(1) rotate(0deg);}
+  100%{opacity:1;transform:scale(1.05) rotate(1deg);}
+}
+
+/* ======= SCREENS ======= */
+.screen{display:none;position:relative;z-index:1;}
+.screen.active{display:flex;flex-direction:column;min-height:100vh;}
+
+/* ======= LOADING ======= */
+#loading-screen{
+  position:fixed;inset:0;z-index:500;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;
+}
+.loader-ring{
+  width:60px;height:60px;
+  border:3px solid var(--border2);
+  border-top-color:var(--gold);
+  border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loader-text{color:var(--muted2);font-size:14px;letter-spacing:2px;}
+
+/* ======= REGISTER SCREEN ======= */
+#register-screen{align-items:center;justify-content:center;padding:40px 20px;}
+
+.register-wrap{
+  width:100%;max-width:520px;
+  animation:floatIn 0.7s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes floatIn{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:translateY(0);}}
+
+.game-logo{text-align:center;margin-bottom:50px;}
+.logo-planet{font-size:90px;display:block;animation:planetFloat 4s ease-in-out infinite;filter:drop-shadow(0 0 40px rgba(245,200,66,0.4));}
+@keyframes planetFloat{0%,100%{transform:translateY(0) rotate(-5deg);}50%{transform:translateY(-15px) rotate(5deg);}}
+.logo-title{
+  font-family:'Tajawal',sans-serif;font-size:52px;font-weight:900;
+  background:linear-gradient(135deg,#fff 0%,var(--gold3) 40%,var(--gold) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:8px;
+}
+.logo-sub{color:var(--muted2);font-size:14px;letter-spacing:3px;text-transform:uppercase;}
+
+.glass-card{
+  background:rgba(13,13,36,0.7);
+  border:1px solid var(--border2);
+  border-radius:28px;
+  padding:40px;
+  backdrop-filter:blur(20px);
+  box-shadow:0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.teams-vs{
+  display:grid;grid-template-columns:1fr auto 1fr;
+  gap:16px;align-items:center;margin-bottom:32px;
+}
+.team-col{}
+.team-label-top{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;display:block;}
+.lbl-t1{color:var(--cyan);}
+.lbl-t2{color:var(--pink);}
+.team-input{
+  width:100%;
+  background:rgba(255,255,255,0.04);
+  border:2px solid var(--border2);
+  border-radius:14px;
+  padding:16px;
+  font-size:16px;font-family:'Cairo',sans-serif;color:var(--text);
+  text-align:center;transition:all 0.3s;
+}
+.team-input.t1:focus{border-color:var(--cyan);box-shadow:0 0 0 4px rgba(0,212,255,0.1);outline:none;}
+.team-input.t2:focus{border-color:var(--pink);box-shadow:0 0 0 4px rgba(255,77,109,0.1);outline:none;}
+.vs-badge{
+  font-family:'Tajawal',sans-serif;font-size:22px;font-weight:900;
+  color:var(--gold);text-shadow:0 0 20px rgba(245,200,66,0.5);
+  text-align:center;
+}
+
+.count-section{margin-bottom:28px;}
+.count-label{font-size:12px;color:var(--muted2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;display:block;}
+.count-pills{display:flex;gap:8px;flex-wrap:wrap;}
+.pill{
+  flex:1;min-width:50px;
+  padding:10px 6px;text-align:center;
+  background:rgba(255,255,255,0.03);
+  border:1px solid var(--border2);border-radius:12px;
+  color:var(--muted2);font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;
+  cursor:pointer;transition:all 0.25s;
+}
+.pill:hover{border-color:var(--gold);color:var(--gold);}
+.pill.active{background:rgba(245,200,66,0.12);border-color:var(--gold);color:var(--gold);box-shadow:0 0 16px rgba(245,200,66,0.15);}
+
+.btn-next{
+  width:100%;padding:18px;
+  background:linear-gradient(135deg,var(--gold) 0%,var(--gold2) 100%);
+  color:#000;font-size:20px;font-weight:900;font-family:'Cairo',sans-serif;
+  border:none;border-radius:16px;cursor:pointer;
+  transition:all 0.3s;letter-spacing:1px;
+  box-shadow:0 8px 30px rgba(245,200,66,0.35);
+  position:relative;overflow:hidden;
+}
+.btn-next::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.2),transparent);
+  opacity:0;transition:opacity 0.3s;
+}
+.btn-next:hover::before{opacity:1;}
+.btn-next:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(245,200,66,0.5);}
+
+/* ======= SELECT SCREEN ======= */
+#select-screen{padding:0;}
+
+.sel-header{
+  padding:16px 30px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(3,3,15,0.85);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.sel-logo{font-size:18px;font-weight:900;color:var(--gold);font-family:'Tajawal',sans-serif;}
+.sel-logo span{color:var(--muted2);font-size:13px;font-weight:400;margin-right:8px;}
+.score-pills-mini{display:flex;gap:16px;align-items:center;}
+.score-pill-mini{
+  background:rgba(255,255,255,0.04);border:1px solid var(--border2);
+  border-radius:100px;padding:6px 16px;
+  display:flex;align-items:center;gap:8px;font-size:13px;
+}
+.score-pill-mini .dot{width:8px;height:8px;border-radius:50%;}
+.dot-t1{background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+.dot-t2{background:var(--pink);box-shadow:0 0 8px var(--pink);}
+.score-pill-mini .pts{font-weight:900;font-family:'Tajawal',sans-serif;font-size:16px;}
+.pts-t1{color:var(--cyan);}
+.pts-t2{color:var(--pink);}
+
+.sel-body{
+  display:grid;grid-template-columns:1fr 280px;
+  flex:1;align-items:start;
+}
+
+/* QUESTIONS BOARD */
+.q-board{padding:30px;}
+.board-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.board-title{font-size:18px;font-weight:900;}
+.board-info{font-size:13px;color:var(--muted2);}
+.board-info strong{color:var(--gold);}
+
+/* CATEGORY TABS */
+.cat-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;}
+.cat-tab{
+  padding:7px 16px;background:rgba(255,255,255,0.03);
+  border:1px solid var(--border);border-radius:100px;
+  color:var(--muted2);font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;
+  cursor:pointer;transition:all 0.2s;
+}
+.cat-tab:hover{border-color:var(--border2);color:var(--text);}
+.cat-tab.active{background:rgba(245,200,66,0.1);border-color:var(--gold);color:var(--gold);}
+
+/* QUESTION SLOTS GRID */
+.slots-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:12px;
+}
+
+.q-slot{
+  background:rgba(13,13,36,0.8);
+  border:2px solid var(--border);
+  border-radius:16px;overflow:hidden;
+  cursor:pointer;transition:all 0.3s;
+  position:relative;
+  aspect-ratio:1/1.1;
+  display:flex;flex-direction:column;
+  backdrop-filter:blur(10px);
+}
+.q-slot:hover{border-color:var(--border2);transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,0.4);}
+.q-slot.answered{border-color:var(--green) !important;background:rgba(0,230,118,0.05);}
+.q-slot.answered:hover{transform:none;cursor:default;}
+
+/* SLOT LOCKED STATE */
+.slot-locked{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;
+  padding:12px;
+}
+.slot-num{
+  font-family:'Tajawal',sans-serif;font-size:36px;font-weight:900;
+  color:var(--border2);line-height:1;
+}
+.slot-cat{font-size:11px;color:var(--muted);text-align:center;}
+.slot-lock-icon{font-size:20px;opacity:0.3;}
+.slot-hint-preview{font-size:10px;color:var(--muted);text-align:center;padding:0 8px;opacity:0.6;}
+
+/* SLOT ANSWERED STATE */
+.slot-answered-inner{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:6px;padding:12px;
+}
+.slot-check{font-size:32px;}
+.slot-answer-text{font-size:12px;font-weight:900;color:var(--green);text-align:center;}
+.slot-pts-badge{
+  font-size:11px;color:rgba(0,230,118,0.7);
+  background:rgba(0,230,118,0.1);border-radius:100px;
+  padding:2px 10px;
+}
+.slot-team-badge{font-size:10px;color:var(--muted2);}
+
+/* OPEN SLOT - show blurred image */
+.q-slot.open{border-color:var(--gold);}
+.slot-open-inner{flex:1;position:relative;overflow:hidden;}
+.slot-open-inner img{
+  width:100%;height:100%;object-fit:cover;
+  filter:blur(0);transition:filter 0.3s;
+}
+.slot-open-label{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(transparent,rgba(0,0,0,0.8));
+  padding:20px 10px 8px;text-align:center;
+  font-size:12px;font-weight:700;color:var(--gold);
+}
+
+/* SIDEBAR */
+.sel-sidebar{
+  border-right:1px solid var(--border);
+  padding:24px 20px;
+  position:sticky;top:65px;
+  max-height:calc(100vh - 65px);
+  overflow-y:auto;
+  display:flex;flex-direction:column;gap:16px;
+}
+.sel-sidebar::-webkit-scrollbar{width:4px;}
+.sel-sidebar::-webkit-scrollbar-thumb{background:var(--border2);border-radius:100px;}
+
+.sidebar-section{
+  background:rgba(13,13,36,0.7);
+  border:1px solid var(--border);
+  border-radius:18px;padding:18px;
+  backdrop-filter:blur(10px);
+}
+.ss-title{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);margin-bottom:14px;}
+
+.progress-ring-wrap{text-align:center;margin-bottom:8px;}
+.progress-text{font-family:'Tajawal',sans-serif;font-size:44px;font-weight:900;color:var(--gold);display:block;line-height:1;}
+.progress-sub{font-size:12px;color:var(--muted2);}
+.progress-bar-wrap{height:6px;background:var(--border);border-radius:100px;overflow:hidden;margin-top:12px;}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold));border-radius:100px;transition:width 0.5s ease;}
+
+.score-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+.score-row:last-child{border-bottom:none;}
+.sr-name{font-size:13px;color:var(--muted2);}
+.sr-pts{font-family:'Tajawal',sans-serif;font-size:22px;font-weight:900;}
+
+.btn-end-game{
+  width:100%;padding:13px;
+  background:transparent;
+  border:1px solid rgba(255,77,109,0.3);
+  border-radius:12px;color:rgba(255,77,109,0.6);
+  font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;
+  cursor:pointer;transition:all 0.3s;
+}
+.btn-end-game:hover{border-color:var(--pink);color:var(--pink);background:rgba(255,77,109,0.05);}
+
+/* ======= GAME MODAL ======= */
+.game-modal{
+  position:fixed;inset:0;z-index:200;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.92);backdrop-filter:blur(16px);
+  animation:fadeIn 0.25s ease;
+}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+.modal-inner{
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:28px;
+  width:min(900px,95vw);
+  max-height:92vh;overflow-y:auto;
+  box-shadow:0 30px 80px rgba(0,0,0,0.7);
+  animation:modalIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes modalIn{from{transform:scale(0.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal-inner::-webkit-scrollbar{width:4px;}
+.modal-inner::-webkit-scrollbar-thumb{background:var(--border2);border-radius:100px;}
+
+.modal-header{
+  padding:20px 28px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:var(--card);z-index:10;
+  border-radius:28px 28px 0 0;
+}
+.modal-q-num{font-size:13px;color:var(--muted2);}
+.modal-pts-badge{
+  background:rgba(245,200,66,0.1);border:1px solid rgba(245,200,66,0.3);
+  border-radius:100px;padding:5px 16px;
+  font-size:14px;font-weight:700;color:var(--gold);
+}
+.btn-close-modal{
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,0.05);border:1px solid var(--border2);
+  color:var(--muted2);font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;
+}
+.btn-close-modal:hover{background:rgba(255,77,109,0.1);border-color:var(--pink);color:var(--pink);}
+
+.modal-body{padding:24px 28px;}
+
+/* IMAGES IN MODAL */
+.modal-images{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:10px;margin-bottom:24px;
+}
+.modal-img-cell{
+  position:relative;border-radius:14px;overflow:hidden;
+  aspect-ratio:4/3;border:2px solid var(--border);
+  background:var(--card2);transition:all 0.4s;
+}
+.modal-img-cell.revealed{border-color:var(--gold);box-shadow:0 0 20px rgba(245,200,66,0.15);}
+.modal-img-cell img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  filter:blur(35px);transform:scale(1.1);
+  transition:filter 0.9s ease,transform 0.9s ease;
+}
+.modal-img-cell.revealed img{filter:blur(0);transform:scale(1);}
+.img-veil{
+  position:absolute;inset:0;
+  background:var(--card2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  transition:opacity 0.5s;
+}
+.img-veil.gone{opacity:0;pointer-events:none;}
+.veil-num{font-family:'Tajawal',sans-serif;font-size:42px;font-weight:900;color:var(--border2);}
+.veil-icon{font-size:24px;opacity:0.3;}
+
+/* TIMER */
+.modal-timer{
+  display:flex;align-items:center;gap:14px;
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:14px;padding:14px 20px;margin-bottom:20px;
+}
+.timer-label-sm{font-size:12px;color:var(--muted2);white-space:nowrap;}
+.timer-track{flex:1;height:7px;background:var(--border);border-radius:100px;overflow:hidden;}
+.timer-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--gold2),var(--gold));transition:width 1s linear,background 0.5s;}
+.timer-fill.warn{background:linear-gradient(90deg,#ff6b35,var(--pink));}
+.timer-num{font-family:'Tajawal',sans-serif;font-size:22px;font-weight:900;color:var(--gold);min-width:28px;text-align:center;transition:color 0.3s;}
+.timer-num.warn{color:var(--pink);}
+.btn-reveal{
+  padding:10px 20px;border-radius:10px;
+  background:transparent;border:1px solid var(--border2);
+  color:var(--muted2);font-family:'Cairo',sans-serif;font-size:13px;
+  cursor:pointer;transition:all 0.3s;white-space:nowrap;
+}
+.btn-reveal:hover:not(:disabled){border-color:var(--gold);color:var(--gold);}
+.btn-reveal:disabled{opacity:0.3;cursor:not-allowed;}
+
+/* POINTS BIG */
+.pts-big{
+  text-align:center;margin-bottom:20px;
+}
+.pts-big-num{
+  font-family:'Tajawal',sans-serif;font-size:64px;font-weight:900;
+  color:var(--gold);text-shadow:0 0 40px rgba(245,200,66,0.4);
+  line-height:1;display:block;transition:all 0.4s;
+}
+.pts-big-label{font-size:12px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-top:4px;}
+
+/* ANSWER AREA */
+.answer-row{display:flex;gap:10px;margin-bottom:14px;}
+.answer-field{
+  flex:1;
+  background:var(--card2);border:2px solid var(--border);
+  border-radius:14px;padding:16px 18px;
+  font-size:17px;font-family:'Cairo',sans-serif;color:var(--text);
+  transition:border-color 0.3s;text-align:right;
+}
+.answer-field:focus{border-color:var(--gold);box-shadow:0 0 0 4px rgba(245,200,66,0.08);outline:none;}
+.answer-field::placeholder{color:var(--muted);}
+.btn-confirm{
+  padding:16px 28px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#000;font-size:17px;font-weight:900;font-family:'Cairo',sans-serif;
+  border:none;border-radius:14px;cursor:pointer;
+  transition:all 0.3s;white-space:nowrap;
+  box-shadow:0 4px 20px rgba(245,200,66,0.3);
+}
+.btn-confirm:hover{transform:translateY(-2px);}
+
+/* TEAM SELECT */
+.team-select-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.btn-team-pick{
+  padding:14px;border-radius:12px;
+  font-size:14px;font-weight:700;font-family:'Cairo',sans-serif;
+  border:2px solid;cursor:pointer;background:transparent;transition:all 0.3s;
+}
+.btn-team-pick.t1{border-color:var(--cyan);color:var(--cyan);}
+.btn-team-pick.t1:hover{background:rgba(0,212,255,0.08);}
+.btn-team-pick.t2{border-color:var(--pink);color:var(--pink);}
+.btn-team-pick.t2:hover{background:rgba(255,77,109,0.08);}
+.btn-skip-q{
+  width:100%;padding:11px;
+  background:transparent;border:1px solid rgba(255,107,53,0.3);
+  border-radius:11px;color:rgba(255,107,53,0.7);
+  font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;
+  cursor:pointer;transition:all 0.3s;
+}
+.btn-skip-q:hover{border-color:#ff6b35;color:#ff6b35;background:rgba(255,107,53,0.05);}
+
+/* RESULT POPUP */
+.result-pop{
+  position:fixed;inset:0;z-index:300;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.88);backdrop-filter:blur(12px);
+  animation:fadeIn 0.25s ease;
+}
+.result-pop-card{
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:28px;padding:48px 56px;text-align:center;
+  max-width:460px;width:90%;
+  box-shadow:0 30px 80px rgba(0,0,0,0.6);
+  animation:modalIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+.rp-emoji{font-size:80px;display:block;margin-bottom:18px;}
+.rp-title{font-size:26px;font-weight:900;margin-bottom:8px;}
+.rp-sub{color:var(--muted2);font-size:15px;margin-bottom:24px;}
+.rp-pts{
+  font-family:'Tajawal',sans-serif;font-size:68px;font-weight:900;
+  color:var(--gold);text-shadow:0 0 30px rgba(245,200,66,0.5);
+  display:block;margin-bottom:28px;
+}
+.btn-rp-next{
+  padding:15px 40px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#000;font-size:17px;font-weight:900;font-family:'Cairo',sans-serif;
+  border:none;border-radius:14px;cursor:pointer;transition:all 0.3s;
+}
+.btn-rp-next:hover{transform:translateY(-2px);}
+
+/* FINAL SCREEN */
+#final-screen{align-items:center;justify-content:center;padding:40px 20px;text-align:center;}
+.trophy-big{font-size:110px;animation:planetFloat 3s ease-in-out infinite;display:block;margin-bottom:20px;}
+.final-winner-label{font-size:14px;color:var(--muted2);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;}
+.final-winner-name{
+  font-family:'Tajawal',sans-serif;font-size:58px;font-weight:900;
+  background:linear-gradient(135deg,#fff 0%,var(--gold3) 50%,var(--gold) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:40px;
+}
+.final-cards{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:40px;}
+.final-card{
+  background:rgba(13,13,36,0.8);border:1px solid var(--border2);
+  border-radius:22px;padding:28px 40px;min-width:160px;
+  backdrop-filter:blur(10px);
+}
+.final-card.winner{border-color:var(--gold);box-shadow:0 0 30px rgba(245,200,66,0.15);}
+.fc-name{font-size:13px;color:var(--muted2);margin-bottom:8px;}
+.fc-pts{font-family:'Tajawal',sans-serif;font-size:52px;font-weight:900;}
+.btn-restart{
+  padding:18px 48px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#000;font-size:19px;font-weight:900;font-family:'Cairo',sans-serif;
+  border:none;border-radius:16px;cursor:pointer;transition:all 0.3s;
+  box-shadow:0 8px 30px rgba(245,200,66,0.3);
+}
+.btn-restart:hover{transform:translateY(-2px);}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:30px;left:50%;
+  transform:translateX(-50%) translateY(100px);
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:100px;padding:12px 26px;
+  font-size:14px;font-weight:700;z-index:500;
+  transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow:0 10px 40px rgba(0,0,0,0.5);white-space:nowrap;
+}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.ok{border-color:var(--green);color:var(--green);}
+.toast.err{border-color:var(--pink);color:var(--pink);}
+
+/* CONFETTI */
+.cfetti{position:fixed;pointer-events:none;z-index:999;border-radius:2px;animation:cffall linear forwards;}
+@keyframes cffall{0%{transform:translateY(-40px) rotate(0deg);opacity:1;}100%{transform:translateY(110vh) rotate(720deg);opacity:0;}}
+
+/* ADMIN LINK */
+.admin-lnk{position:fixed;bottom:16px;left:16px;font-size:11px;color:var(--border2);text-decoration:none;z-index:10;transition:color 0.3s;}
+.admin-lnk:hover{color:var(--muted2);}
+
+/* STAR TWINKLE */
+@keyframes twinkle{0%,100%{opacity:0.3;transform:scale(1);}50%{opacity:1;transform:scale(1.3);}}
 </style>
 </head>
 <body>
 
-<div class="stars"></div>
+<canvas id="space-canvas"></canvas>
+<div class="nebula"></div>
 
 <!-- LOADING -->
-<div class="loading-screen" id="loading">
-  <div class="loading-spinner"></div>
-  <div style="color: var(--muted); font-size: 14px;">جاري التحميل...</div>
+<div id="loading-screen">
+  <div class="loader-ring"></div>
+  <div class="loader-text">جاري التحميل...</div>
 </div>
 
-<!-- SETUP SCREEN -->
-<div class="screen" id="setup-screen">
-  <div class="logo-section">
-    <span class="logo-icon">🔍</span>
-    <h1 class="logo-title">خمّن الكلمة</h1>
-    <p class="logo-sub">من الصور</p>
-  </div>
-
-  <div class="setup-card">
-    <div class="teams-grid">
-      <div class="team-input-group">
-        <label class="team-label t1">⚡ الفريق الأول</label>
-        <input class="team-input t1" id="team1-input" type="text" placeholder="اسم الفريق" value="الفريق الأول">
-      </div>
-      <div class="team-input-group">
-        <label class="team-label t2">🔥 الفريق الثاني</label>
-        <input class="team-input t2" id="team2-input" type="text" placeholder="اسم الفريق" value="الفريق الثاني">
-      </div>
+<!-- REGISTER SCREEN -->
+<div class="screen" id="register-screen">
+  <div class="register-wrap">
+    <div class="game-logo">
+      <span class="logo-planet">🔭</span>
+      <div class="logo-title">خمّن الكلمة</div>
+      <div class="logo-sub">من الصور • تنافس الفرق</div>
     </div>
+    <div class="glass-card">
+      <div class="teams-vs">
+        <div class="team-col">
+          <span class="team-label-top lbl-t1">⚡ الفريق الأول</span>
+          <input class="team-input t1" id="t1-name" type="text" placeholder="الفريق الأول" value="الفريق الأول">
+        </div>
+        <div class="vs-badge">⚔️<br>VS</div>
+        <div class="team-col">
+          <span class="team-label-top lbl-t2">🔥 الفريق الثاني</span>
+          <input class="team-input t2" id="t2-name" type="text" placeholder="الفريق الثاني" value="الفريق الثاني">
+        </div>
+      </div>
 
-    <div class="vs-divider">⚔️ VS ⚔️</div>
+      <div class="count-section">
+        <span class="count-label">🎯 عدد الأسئلة لكل جلسة</span>
+        <div class="count-pills" id="count-pills">
+          <div class="pill" onclick="setWanted(5,this)">5</div>
+          <div class="pill active" onclick="setWanted(10,this)">10</div>
+          <div class="pill" onclick="setWanted(15,this)">15</div>
+          <div class="pill" onclick="setWanted(20,this)">20</div>
+          <div class="pill" onclick="setWanted(999,this)">الكل</div>
+        </div>
+      </div>
 
-    <button class="btn-start" onclick="startGame()">🚀 ابدأ اللعبة</button>
-    <a href="questions.html" style="display:block; margin-top:14px; text-align:center; color:var(--muted); font-size:14px; text-decoration:none; transition:color 0.3s;" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--muted)'">🎯 اختيار أسئلة محددة</a>
+      <button class="btn-next" onclick="goToSelect()">اختر الأسئلة ✦</button>
+    </div>
   </div>
 </div>
 
-<!-- GAME SCREEN -->
-<div class="screen" id="game-screen">
-
-  <div class="scoreboard">
-    <div class="team-score">
-      <div class="score-indicator t1"></div>
-      <div>
-        <div class="score-name" id="score-name1" style="color:var(--team1)">الفريق الأول</div>
-        <div class="score-points t1" id="score1">0</div>
+<!-- SELECT SCREEN -->
+<div class="screen" id="select-screen">
+  <div class="sel-header">
+    <div class="sel-logo">خمّن الكلمة <span id="sel-header-sub">اختر سؤالاً للبدء</span></div>
+    <div class="score-pills-mini">
+      <div class="score-pill-mini">
+        <div class="dot dot-t1"></div>
+        <span id="hdr-t1-name" style="color:var(--cyan);font-weight:700;font-size:13px;">—</span>
+        <span class="pts pts-t1" id="hdr-s1">0</span>
       </div>
-    </div>
-
-    <div class="mid-info">
-      <strong id="mid-q">1 / 30</strong>
-      <span>سؤال</span>
-    </div>
-
-    <div class="team-score right">
-      <div>
-        <div class="score-name" id="score-name2" style="color:var(--team2); text-align:right">الفريق الثاني</div>
-        <div class="score-points t2" id="score2">0</div>
+      <div class="score-pill-mini">
+        <div class="dot dot-t2"></div>
+        <span id="hdr-t2-name" style="color:var(--pink);font-weight:700;font-size:13px;">—</span>
+        <span class="pts pts-t2" id="hdr-s2">0</span>
       </div>
-      <div class="score-indicator t2"></div>
     </div>
   </div>
 
-  <div class="game-content">
-    <div class="question-header">
-      <div class="question-counter" id="q-counter">السؤال 1 من 30</div>
-      <div id="hint-area"></div>
-    </div>
-
-    <div class="points-display">
-      <div>
-        <div class="points-value" id="cur-points">200</div>
-        <div class="points-label">نقطة للإجابة الصحيحة</div>
+  <div class="sel-body">
+    <!-- BOARD -->
+    <div class="q-board">
+      <div class="board-top">
+        <div class="board-title">🌌 لوحة الأسئلة</div>
+        <div class="board-info">متبقي <strong id="remaining-count">—</strong> سؤال</div>
       </div>
+      <div class="cat-tabs" id="cat-tabs">
+        <div class="cat-tab active" onclick="filterCat('الكل',this)">الكل</div>
+      </div>
+      <div class="slots-grid" id="slots-grid"></div>
     </div>
 
-    <div class="images-grid" id="images-grid">
-      <div class="img-cell" id="cell-0">
-        <img id="img-0" src="" alt="">
-        <div class="img-overlay hidden-overlay" id="overlay-0">
-          <div class="img-number">1</div>
-          <div class="img-lock">🔒</div>
+    <!-- SIDEBAR -->
+    <div class="sel-sidebar">
+      <div class="sidebar-section">
+        <div class="ss-title">📊 تقدم الجلسة</div>
+        <div class="progress-ring-wrap">
+          <span class="progress-text" id="prog-text">0</span>
+          <div class="progress-sub" id="prog-sub">من 0 سؤال</div>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="prog-bar" style="width:0%"></div>
         </div>
       </div>
-      <div class="img-cell" id="cell-1">
-        <img id="img-1" src="" alt="">
-        <div class="img-overlay hidden-overlay" id="overlay-1">
-          <div class="img-number">2</div>
-          <div class="img-lock">🔒</div>
+
+      <div class="sidebar-section">
+        <div class="ss-title">🏆 النقاط</div>
+        <div class="score-row">
+          <span class="sr-name" id="sb-t1-name">—</span>
+          <span class="sr-pts pts-t1" id="sb-s1">0</span>
+        </div>
+        <div class="score-row">
+          <span class="sr-name" id="sb-t2-name">—</span>
+          <span class="sr-pts pts-t2" id="sb-s2">0</span>
         </div>
       </div>
-      <div class="img-cell" id="cell-2">
-        <img id="img-2" src="" alt="">
-        <div class="img-overlay hidden-overlay" id="overlay-2">
-          <div class="img-number">3</div>
-          <div class="img-lock">🔒</div>
-        </div>
+
+      <div class="sidebar-section">
+        <div class="ss-title">⚡ الجلسة</div>
+        <div class="score-row"><span class="sr-name">المجاب</span><span class="sr-pts" id="sb-answered" style="color:var(--green);font-size:18px;">0</span></div>
+        <div class="score-row"><span class="sr-name">المتخطي</span><span class="sr-pts" id="sb-skipped" style="color:var(--muted2);font-size:18px;">0</span></div>
       </div>
-      <div class="img-cell" id="cell-3">
-        <img id="img-3" src="" alt="">
-        <div class="img-overlay hidden-overlay" id="overlay-3">
-          <div class="img-number">4</div>
-          <div class="img-lock">🔒</div>
-        </div>
-      </div>
+
+      <button class="btn-end-game" onclick="endGame()">🏁 إنهاء اللعبة</button>
     </div>
-
-    <div class="timer-section">
-      <span class="timer-label">⏱ الصورة التالية بعد</span>
-      <div class="timer-bar-wrap">
-        <div class="timer-bar" id="timer-bar"></div>
-      </div>
-      <div class="timer-count" id="timer-count">30</div>
-      <button class="reveal-btn" id="reveal-btn" onclick="revealNextImage()">كشف صورة ◀</button>
-    </div>
-
-    <div class="answer-section">
-      <div class="answer-wrap">
-        <input class="answer-input" id="answer-input" type="text"
-          placeholder="اكتب إجابتك هنا..." autocomplete="off"
-          onkeydown="if(event.key==='Enter') showTeamSelect()">
-      </div>
-      <button class="btn-answer" onclick="showTeamSelect()">✓ تأكيد</button>
-    </div>
-
-    <div class="team-btns" id="team-btns" style="display:none">
-      <button class="btn-team t1" id="btn-t1" onclick="submitAnswer(1)">✓ <span id="btn-t1-name">الفريق الأول</span> أجاب</button>
-      <button class="btn-team t2" id="btn-t2" onclick="submitAnswer(2)">✓ <span id="btn-t2-name">الفريق الثاني</span> أجاب</button>
-    </div>
-
-    <button class="btn-skip" id="skip-btn" onclick="skipQuestion()">⏭ تخطي السؤال</button>
-
   </div>
 </div>
 
 <!-- FINAL SCREEN -->
 <div class="screen" id="final-screen">
-  <span class="trophy">🏆</span>
-  <div class="winner-title">الفائز</div>
-  <div class="winner-name" id="winner-name">—</div>
-  <div class="final-scores">
-    <div class="final-score-card" id="final-card1">
-      <div class="name" id="final-name1">الفريق الأول</div>
-      <div class="pts t1" id="final-pts1" style="color:var(--team1)">0</div>
-    </div>
-    <div class="final-score-card" id="final-card2">
-      <div class="name" id="final-name2">الفريق الثاني</div>
-      <div class="pts t2" id="final-pts2" style="color:var(--team2)">0</div>
-    </div>
-  </div>
-  <button class="btn-start" style="max-width:300px" onclick="resetGame()">🔄 لعبة جديدة</button>
+  <span class="trophy-big">🏆</span>
+  <div class="final-winner-label">الفائز</div>
+  <div class="final-winner-name" id="final-winner">—</div>
+  <div class="final-cards" id="final-cards"></div>
+  <button class="btn-restart" onclick="restartGame()">🔄 لعبة جديدة</button>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
-
-<!-- TRANSITION SCREEN -->
-<div class="transition-screen" id="transition-screen" style="display:none">
-  <div class="trans-label">السؤال القادم</div>
-  <div class="trans-number" id="trans-num">1</div>
-  <div class="trans-q-label" id="trans-total">من 30</div>
-  <div class="trans-countdown">
-    <div class="trans-dot" id="tdot-0"></div>
-    <div class="trans-dot" id="tdot-1"></div>
-    <div class="trans-dot" id="tdot-2"></div>
-  </div>
-</div>
-
-<!-- ADMIN LINK -->
-<a href="admin.html" class="admin-link">⚙</a>
+<a href="admin.html" class="admin-lnk">⚙</a>
 
 <script>
-const SUPABASE_URL = 'https://xeukoqidoapdelgvxavl.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhldWtvcWlkb2FwZGVsZ3Z4YXZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MzM2OTksImV4cCI6MjA5NjQwOTY5OX0.yRLUSTZYBOVIOZqIV4EDPerrbx5LexzmjKd4z9xjYPk';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL='https://xeukoqidoapdelgvxavl.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhldWtvcWlkb2FwZGVsZ3Z4YXZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MzM2OTksImV4cCI6MjA5NjQwOTY5OX0.yRLUSTZYBOVIOZqIV4EDPerrbx5LexzmjKd4z9xjYPk';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-// ===== STATE =====
-let questions = [];
-let currentIndex = 0;
-let shownImages = 1;
-let timerInterval = null;
-let timerSecs = 30;
-let sessionId = null;
-let pendingAnswer = '';
+const POINTS=[200,150,100,50];
 
-let game = {
-  team1: 'الفريق الأول',
-  team2: 'الفريق الثاني',
-  score1: 0,
-  score2: 0,
-};
+let allQ=[],sessionQ=[],answeredIds=new Set(),skippedIds=new Set();
+let score1=0,score2=0,team1='',team2='';
+let wantedCount=10;
+let currentCat='الكل';
+let activeModal=null,timerInterval=null,timerSecs=30,shownImgs=1;
+let sessionId=null;
 
-const POINTS = [200, 150, 100, 50];
+// ===== SPACE CANVAS =====
+(function(){
+  const c=document.getElementById('space-canvas');
+  const ctx=c.getContext('2d');
+  let stars=[];
+  function resize(){c.width=innerWidth;c.height=innerHeight;buildStars();}
+  function buildStars(){
+    stars=[];
+    for(let i=0;i<220;i++){
+      stars.push({
+        x:Math.random()*c.width,y:Math.random()*c.height,
+        r:Math.random()*1.8+0.2,
+        a:Math.random(),da:(Math.random()-0.5)*0.008,
+        color:['#ffffff','#aaccff','#ffd97d','#ffaaaa'][Math.floor(Math.random()*4)]
+      });
+    }
+  }
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    stars.forEach(s=>{
+      s.a=Math.max(0.05,Math.min(1,s.a+s.da));
+      if(s.a<=0.05||s.a>=1)s.da*=-1;
+      ctx.beginPath();
+      ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fillStyle=s.color.replace(')',`,${s.a})`).replace('rgb','rgba').replace('#','rgba(').replace('rgba(','');
+      // simpler:
+      ctx.globalAlpha=s.a;
+      ctx.fillStyle=s.color;
+      ctx.fill();
+    });
+    ctx.globalAlpha=1;
+    // shooting star occasionally
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',resize);
+  resize();draw();
+})();
 
 // ===== INIT =====
-async function init() {
-  // Check if coming from questions selector
-  const savedIds = sessionStorage.getItem('game_questions');
-  const savedT1  = sessionStorage.getItem('game_team1');
-  const savedT2  = sessionStorage.getItem('game_team2');
-
-  if (savedIds) {
-    sessionStorage.removeItem('game_questions');
-    sessionStorage.removeItem('game_team1');
-    sessionStorage.removeItem('game_team2');
-
-    const ids = JSON.parse(savedIds);
-    const { data, error } = await sb.from('questions').select('*').in('id', ids).eq('active', true);
-    document.getElementById('loading').style.display = 'none';
-
-    if (error || !data?.length) {
-      showScreen('setup-screen');
-      showToast('⚠️ خطأ في تحميل الأسئلة', 'wrong');
-      return;
-    }
-
-    // Keep order as selected
-    questions = ids.map(id => data.find(q => q.id === id)).filter(Boolean);
-
-    if (savedT1) document.getElementById('team1-input').value = savedT1;
-    if (savedT2) document.getElementById('team2-input').value = savedT2;
-
-    // Auto-start
-    game.team1 = savedT1 || 'الفريق الأول';
-    game.team2 = savedT2 || 'الفريق الثاني';
-    game.score1 = 0;
-    game.score2 = 0;
-    currentIndex = 0;
-    updateScoreboard();
-    showScreen('game-screen');
-    loadQuestion();
-    return;
-  }
-
-  // Normal flow - load all questions
-  const { data, error } = await sb.from('questions').select('*').eq('active', true).order('id');
-  document.getElementById('loading').style.display = 'none';
-
-  if (error || !data || data.length === 0) {
-    showScreen('setup-screen');
-    showToast('⚠️ لا توجد أسئلة! أضف أسئلة من لوحة الأدمن', 'wrong');
-    questions = getSampleQuestions();
-  } else {
-    questions = shuffle(data);
-  }
-  showScreen('setup-screen');
+async function init(){
+  const{data,error}=await sb.from('questions').select('*').eq('active',true).order('category').order('id');
+  document.getElementById('loading-screen').style.display='none';
+  if(error||!data?.length){showToast('⚠️ لا توجد أسئلة في قاعدة البيانات','err');showScreen('register-screen');return;}
+  allQ=data;
+  showScreen('register-screen');
 }
 
-function getSampleQuestions() {
-  return [
-    { id: 1, answer: 'تجريبي', hint: 'سؤال تجريبي', image1: 'https://picsum.photos/seed/1/400/300', image2: 'https://picsum.photos/seed/2/400/300', image3: 'https://picsum.photos/seed/3/400/300', image4: 'https://picsum.photos/seed/4/400/300' }
-  ];
-}
-
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-// ===== SCREENS =====
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 
-// ===== GAME START =====
-async function startGame() {
-  game.team1 = document.getElementById('team1-input').value || 'الفريق الأول';
-  game.team2 = document.getElementById('team2-input').value || 'الفريق الثاني';
-  game.score1 = 0;
-  game.score2 = 0;
-  currentIndex = 0;
-
-  // Create session
-  const { data: sess } = await sb.from('game_sessions').insert({
-    team1_name: game.team1,
-    team2_name: game.team2,
-    status: 'playing',
-    question_order: questions.map(q => String(q.id))
-  }).select().single();
-
-  if (sess) sessionId = sess.id;
-
-  updateScoreboard();
-  showScreen('game-screen');
-  loadQuestion();
+// ===== REGISTER =====
+function setWanted(n,el){
+  wantedCount=n;
+  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
 }
 
-// ===== LOAD QUESTION =====
-function loadQuestion() {
-  if (currentIndex >= questions.length) {
-    endGame();
-    return;
-  }
+function goToSelect(){
+  team1=document.getElementById('t1-name').value.trim()||'الفريق الأول';
+  team2=document.getElementById('t2-name').value.trim()||'الفريق الثاني';
+  score1=0;score2=0;answeredIds.clear();skippedIds.clear();
 
-  const q = questions[currentIndex];
-  shownImages = 1;
-  pendingAnswer = '';
-  document.getElementById('team-btns').style.display = 'none';
-  document.getElementById('answer-input').value = '';
+  // Pick questions
+  const count=wantedCount>=999?allQ.length:Math.min(wantedCount,allQ.length);
+  sessionQ=[...allQ].sort(()=>Math.random()-0.5).slice(0,count);
 
-  // Counter
-  const total = questions.length;
-  document.getElementById('q-counter').textContent = `السؤال ${currentIndex + 1} من ${total}`;
-  document.getElementById('mid-q').textContent = `${currentIndex + 1} / ${total}`;
+  buildCatTabs();
+  updateSelectScreen();
+  showScreen('select-screen');
+}
 
-  // Hint
-  const hintArea = document.getElementById('hint-area');
-  hintArea.innerHTML = q.hint ? `<div class="hint-badge">💡 ${q.hint}</div>` : '';
+// ===== SELECT SCREEN =====
+function buildCatTabs(){
+  const cats=['الكل',...new Set(sessionQ.map(q=>q.category||'عام'))];
+  const wrap=document.getElementById('cat-tabs');
+  wrap.innerHTML=cats.map((c,i)=>
+    `<div class="cat-tab${i===0?' active':''}" onclick="filterCat('${c}',this)">${c}</div>`
+  ).join('');
+}
 
-  // Points
-  updatePoints();
+function filterCat(cat,el){
+  currentCat=cat;
+  document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderSlots();
+}
 
-  // Images — set src with blur, overlay handles hiding
-  const imgSrcs = [q.image1, q.image2, q.image3, q.image4];
-  ['img-0','img-1','img-2','img-3'].forEach((id, i) => {
-    const imgEl = document.getElementById(id);
-    imgEl.src = imgSrcs[i];
-    const overlay = document.getElementById(`overlay-${i}`);
-    overlay.className = 'img-overlay hidden-overlay';
-    document.getElementById(`cell-${i}`).classList.remove('revealed');
-  });
+function updateSelectScreen(){
+  document.getElementById('hdr-t1-name').textContent=team1;
+  document.getElementById('hdr-t2-name').textContent=team2;
+  document.getElementById('sb-t1-name').textContent=team1;
+  document.getElementById('sb-t2-name').textContent=team2;
+  updateScores();
+  renderSlots();
+}
+
+function renderSlots(){
+  const grid=document.getElementById('slots-grid');
+  const filtered=sessionQ.filter(q=>currentCat==='الكل'||(q.category||'عام')===currentCat);
+  const remaining=sessionQ.filter(q=>!answeredIds.has(q.id)&&!skippedIds.has(q.id)).length;
+
+  document.getElementById('remaining-count').textContent=remaining;
+  document.getElementById('sel-header-sub').textContent=remaining>0?'اختر سؤالاً للبدء':'انتهت الأسئلة!';
+
+  grid.innerHTML=filtered.map((q,i)=>{
+    const idx=sessionQ.indexOf(q)+1;
+    const isAnswered=answeredIds.has(q.id);
+    const isSkipped=skippedIds.has(q.id);
+    const cat=q.category||'عام';
+
+    if(isAnswered){
+      const pts=q._pts||0;
+      const teamName=q._team===1?team1:team2;
+      return `<div class="q-slot answered">
+        <div class="slot-answered-inner">
+          <div class="slot-check">✅</div>
+          <div class="slot-answer-text">${q.answer}</div>
+          <div class="slot-pts-badge">+${pts} نقطة</div>
+          <div class="slot-team-badge">${teamName}</div>
+        </div>
+      </div>`;
+    }
+    if(isSkipped){
+      return `<div class="q-slot answered" style="border-color:var(--muted) !important;background:rgba(255,255,255,0.02);">
+        <div class="slot-answered-inner">
+          <div class="slot-check">⏭</div>
+          <div class="slot-answer-text" style="color:var(--muted2);">${q.answer}</div>
+          <div class="slot-pts-badge" style="background:rgba(255,255,255,0.05);color:var(--muted2);">تخطي</div>
+        </div>
+      </div>`;
+    }
+
+    return `<div class="q-slot" onclick="openQuestion(${q.id})" style="animation-delay:${i*0.03}s">
+      <div class="slot-locked">
+        <div class="slot-num">${idx}</div>
+        <div class="slot-cat">${cat}</div>
+        <div class="slot-lock-icon">🔒</div>
+        ${q.hint?`<div class="slot-hint-preview">${q.hint}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  updateProgress();
+}
+
+function updateProgress(){
+  const done=answeredIds.size+skippedIds.size;
+  const total=sessionQ.length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('prog-text').textContent=done;
+  document.getElementById('prog-sub').textContent=`من ${total} سؤال`;
+  document.getElementById('prog-bar').style.width=pct+'%';
+  document.getElementById('sb-answered').textContent=answeredIds.size;
+  document.getElementById('sb-skipped').textContent=skippedIds.size;
+
+  if(done>=total&&total>0) setTimeout(endGame,800);
+}
+
+function updateScores(){
+  document.getElementById('hdr-s1').textContent=score1;
+  document.getElementById('hdr-s2').textContent=score2;
+  document.getElementById('sb-s1').textContent=score1;
+  document.getElementById('sb-s2').textContent=score2;
+}
+
+// ===== OPEN QUESTION MODAL =====
+function openQuestion(qId){
+  const q=sessionQ.find(x=>x.id===qId);
+  if(!q||answeredIds.has(qId)||skippedIds.has(qId))return;
+
+  shownImgs=1;
+  const modal=document.createElement('div');
+  modal.className='game-modal';
+  modal.id='active-modal';
+  const qIdx=sessionQ.indexOf(q)+1;
+
+  modal.innerHTML=`
+  <div class="modal-inner">
+    <div class="modal-header">
+      <div class="modal-q-num">السؤال ${qIdx} من ${sessionQ.length}</div>
+      <div class="modal-pts-badge" id="m-pts-badge">🌟 200 نقطة</div>
+      <button class="btn-close-modal" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-images" id="m-images">
+        ${[1,2,3,4].map(n=>`
+        <div class="modal-img-cell" id="mcell-${n}">
+          <img id="mimg-${n}" src="${[q.image1,q.image2,q.image3,q.image4][n-1]}" alt="">
+          <div class="img-veil" id="mveil-${n}">
+            <div class="veil-num">${n}</div>
+            <div class="veil-icon">🔒</div>
+          </div>
+        </div>`).join('')}
+      </div>
+
+      <div class="modal-timer">
+        <span class="timer-label-sm">⏱ الصورة التالية</span>
+        <div class="timer-track"><div class="timer-fill" id="m-timer-fill"></div></div>
+        <div class="timer-num" id="m-timer-num">30</div>
+        <button class="btn-reveal" id="m-reveal-btn" onclick="revealNext()">كشف ◀</button>
+      </div>
+
+      <div class="pts-big">
+        <span class="pts-big-num" id="m-pts-num">200</span>
+        <div class="pts-big-label">نقطة للإجابة الصحيحة</div>
+      </div>
+
+      <div class="answer-row">
+        <input class="answer-field" id="m-answer" type="text" placeholder="اكتب إجابتك هنا..."
+          autocomplete="off" onkeydown="if(event.key==='Enter')showTeamPick()">
+        <button class="btn-confirm" onclick="showTeamPick()">✓ تأكيد</button>
+      </div>
+      <div id="m-team-pick" style="display:none">
+        <div class="team-select-row">
+          <button class="btn-team-pick t1" onclick="submitAns(${qId},1)">✓ ${team1} أجاب</button>
+          <button class="btn-team-pick t2" onclick="submitAns(${qId},2)">✓ ${team2} أجاب</button>
+        </div>
+      </div>
+      <button class="btn-skip-q" onclick="skipQuestion(${qId})">⏭ تخطي هذا السؤال</button>
+    </div>
+  </div>`;
+
+  document.body.appendChild(modal);
+  activeModal=modal;
 
   // Reveal first image
-  revealImage(0);
-
-  // Start timer
-  startTimer();
+  revealImg(1);
+  startModalTimer(qId);
 }
 
-function revealImage(index) {
-  const overlay = document.getElementById(`overlay-${index}`);
-  overlay.className = 'img-overlay visible-overlay';
-  document.getElementById(`cell-${index}`).classList.add('revealed');
-  shownImages = index + 1;
-  updatePoints();
-
-  // Disable reveal if all shown
-  document.getElementById('reveal-btn').disabled = shownImages >= 4;
+function closeModal(){
+  if(activeModal){activeModal.remove();activeModal=null;}
+  clearInterval(timerInterval);
 }
 
-function revealNextImage() {
-  if (shownImages < 4) {
-    revealImage(shownImages);
-    resetTimer();
-  }
+// ===== IMAGE REVEAL =====
+function revealImg(n){
+  const cell=document.getElementById(`mcell-${n}`);
+  const veil=document.getElementById(`mveil-${n}`);
+  if(!cell||!veil)return;
+  cell.classList.add('revealed');
+  veil.classList.add('gone');
+  shownImgs=n;
+  updatePtsBadge();
+  document.getElementById('m-reveal-btn').disabled=shownImgs>=4;
 }
 
-function updatePoints() {
-  const pts = POINTS[shownImages - 1] || 50;
-  const el = document.getElementById('cur-points');
-  el.textContent = pts;
-  el.style.color = pts === 200 ? 'var(--gold)' : pts === 150 ? '#a0e0ff' : pts === 100 ? '#ffaa55' : 'var(--team2)';
+function revealNext(){
+  if(shownImgs<4){revealImg(shownImgs+1);resetModalTimer();}
+}
+
+function updatePtsBadge(){
+  const pts=POINTS[shownImgs-1]||50;
+  const colors=['','#f5c842','#a0e0ff','#ffaa55','#ff4d6d'];
+  const numEl=document.getElementById('m-pts-num');
+  const badgeEl=document.getElementById('m-pts-badge');
+  if(numEl){numEl.textContent=pts;numEl.style.color=colors[shownImgs]||'#ff4d6d';}
+  if(badgeEl)badgeEl.textContent=`🌟 ${pts} نقطة`;
 }
 
 // ===== TIMER =====
-function startTimer() {
+function startModalTimer(qId){
   clearInterval(timerInterval);
-  timerSecs = 30;
-  updateTimerUI();
-
-  timerInterval = setInterval(() => {
-    timerSecs--;
-    updateTimerUI();
-    if (timerSecs <= 0) {
+  timerSecs=30;updateTimerUI();
+  timerInterval=setInterval(()=>{
+    timerSecs--;updateTimerUI();
+    if(timerSecs<=0){
       clearInterval(timerInterval);
-      if (shownImages < 4) {
-        revealNextImage();
-      }
+      if(shownImgs<4){revealImg(shownImgs+1);if(shownImgs<4)startModalTimer(qId);}
     }
-  }, 1000);
+  },1000);
 }
 
-function resetTimer() {
-  if (shownImages < 4) {
-    clearInterval(timerInterval);
-    startTimer();
-  }
+function resetModalTimer(){
+  clearInterval(timerInterval);
+  const modal=activeModal;
+  if(modal&&shownImgs<4)startModalTimer(null);
 }
 
-function updateTimerUI() {
-  const pct = (timerSecs / 30) * 100;
-  const bar = document.getElementById('timer-bar');
-  const count = document.getElementById('timer-count');
-  bar.style.width = pct + '%';
-  const warn = timerSecs <= 10;
-  bar.className = 'timer-bar' + (warn ? ' warning' : '');
-  count.className = 'timer-count' + (warn ? ' warning' : '');
-  count.textContent = timerSecs;
+function updateTimerUI(){
+  const fill=document.getElementById('m-timer-fill');
+  const num=document.getElementById('m-timer-num');
+  if(!fill||!num)return;
+  const pct=(timerSecs/30)*100;
+  fill.style.width=pct+'%';
+  const warn=timerSecs<=10;
+  fill.className='timer-fill'+(warn?' warn':'');
+  num.className='timer-num'+(warn?' warn':'');
+  num.textContent=timerSecs;
 }
 
 // ===== ANSWER =====
-function showTeamSelect() {
-  const val = document.getElementById('answer-input').value.trim();
-  if (!val) { showToast('اكتب الإجابة أولاً!', 'wrong'); return; }
-  pendingAnswer = val;
-
-  document.getElementById('btn-t1-name').textContent = game.team1;
-  document.getElementById('btn-t2-name').textContent = game.team2;
-  document.getElementById('team-btns').style.display = 'grid';
+function showTeamPick(){
+  const val=document.getElementById('m-answer')?.value.trim();
+  if(!val){showToast('اكتب الإجابة أولاً!','err');return;}
+  const pick=document.getElementById('m-team-pick');
+  if(pick)pick.style.display='block';
 }
 
-function normalize(str) {
-  return str.trim()
-    .replace(/[أإآا]/g, 'ا')
-    .replace(/[ةه]/g, 'ه')
-    .replace(/ى/g, 'ي')
-    .replace(/\s+/g, ' ')
-    .toLowerCase();
+function normalize(s){
+  return s.trim()
+    .replace(/[أإآا]/g,'ا').replace(/[ةه]/g,'ه')
+    .replace(/ى/g,'ي').replace(/\s+/g,' ').toLowerCase();
 }
 
-async function submitAnswer(team) {
-  const q = questions[currentIndex];
-  const correct = normalize(pendingAnswer) === normalize(q.answer);
-  const pts = correct ? POINTS[shownImages - 1] : 0;
+async function submitAns(qId,team){
+  const q=sessionQ.find(x=>x.id===qId);
+  const ans=document.getElementById('m-answer')?.value.trim();
+  if(!q||!ans)return;
+
+  const correct=normalize(ans)===normalize(q.answer);
+  if(!correct){
+    showToast('❌ إجابة خاطئة!','err');
+    const pick=document.getElementById('m-team-pick');
+    if(pick)pick.style.display='none';
+    document.getElementById('m-answer').value='';
+    return;
+  }
 
   clearInterval(timerInterval);
+  const pts=POINTS[shownImgs-1]||50;
+  if(team===1)score1+=pts; else score2+=pts;
 
-  if (correct) {
-    if (team === 1) { game.score1 += pts; animateScore('score1'); }
-    else { game.score2 += pts; animateScore('score2'); }
-    updateScoreboard();
+  q._pts=pts;q._team=team;
+  answeredIds.add(qId);
 
-    // Save answer
-    if (sessionId) {
-      await sb.from('answers').insert({
-        session_id: sessionId,
-        question_id: q.id,
-        team_answered: team,
-        images_shown: shownImages,
-        points_awarded: pts
-      });
-    }
-
-    showResult(true, team, pts);
-  } else {
-    showToast(`❌ إجابة خاطئة!`, 'wrong');
-    document.getElementById('answer-input').value = '';
-    document.getElementById('team-btns').style.display = 'none';
-    pendingAnswer = '';
-    startTimer();
+  if(sessionId){
+    await sb.from('answers').insert({session_id:sessionId,question_id:qId,team_answered:team,images_shown:shownImgs,points_awarded:pts});
   }
+
+  closeModal();
+  updateScores();
+  showResultPop(team,pts,q.answer);
 }
 
-function animateScore(id) {
-  const el = document.getElementById(id);
-  el.classList.remove('score-bump');
-  void el.offsetWidth;
-  el.classList.add('score-bump');
-  setTimeout(() => el.classList.remove('score-bump'), 600);
-}
+async function skipQuestion(qId){
+  clearInterval(timerInterval);
+  const q=sessionQ.find(x=>x.id===qId);
+  if(!q)return;
 
-function updateScoreboard() {
-  document.getElementById('score-name1').textContent = game.team1;
-  document.getElementById('score-name2').textContent = game.team2;
-  document.getElementById('score1').textContent = game.score1;
-  document.getElementById('score2').textContent = game.score2;
+  // Reveal all images before closing
+  for(let i=1;i<=4;i++)revealImg(i);
+
+  skippedIds.add(qId);
+
+  // Show answer briefly then close
+  const pop=document.createElement('div');
+  pop.className='result-pop';
+  pop.innerHTML=`<div class="result-pop-card">
+    <span class="rp-emoji">🤔</span>
+    <div class="rp-title" style="color:#ff6b35">لم يُجب أحد!</div>
+    <div class="rp-sub">الإجابة كانت: <strong style="color:var(--gold)">${q.answer}</strong></div>
+    <button class="btn-rp-next" onclick="this.closest('.result-pop').remove();closeModal();renderSlots();">حسناً ✓</button>
+  </div>`;
+  document.body.appendChild(pop);
+  updateScores();
 }
 
 // ===== RESULT POPUP =====
-function showResult(correct, team, pts) {
-  const teamName = team === 1 ? game.team1 : game.team2;
-  const color = team === 1 ? 'var(--team1)' : 'var(--team2)';
-  const q = questions[currentIndex];
-
-  const overlay = document.createElement('div');
-  overlay.className = 'result-overlay';
-  overlay.innerHTML = `
-    <div class="result-card">
-      <span class="result-emoji">🎉</span>
-      <div class="result-title" style="color:${color}">${teamName}</div>
-      <div class="result-sub">أجاب صح! الإجابة: <strong style="color:var(--gold)">${q.answer}</strong></div>
-      <span class="result-points">+${pts}</span>
-      <button class="btn-next" onclick="nextQuestion(this.closest('.result-overlay'))">السؤال التالي ←</button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
+function showResultPop(team,pts,answer){
+  const teamName=team===1?team1:team2;
+  const color=team===1?'var(--cyan)':'var(--pink)';
+  const pop=document.createElement('div');
+  pop.className='result-pop';
+  pop.innerHTML=`<div class="result-pop-card">
+    <span class="rp-emoji">🎉</span>
+    <div class="rp-title" style="color:${color}">${teamName}</div>
+    <div class="rp-sub">أجاب صح! الإجابة: <strong style="color:var(--gold)">${answer}</strong></div>
+    <span class="rp-pts">+${pts}</span>
+    <button class="btn-rp-next" onclick="this.closest('.result-pop').remove();renderSlots();">العودة للوحة ✦</button>
+  </div>`;
+  document.body.appendChild(pop);
   confetti();
 }
 
-function nextQuestion(overlay) {
-  overlay.remove();
-  currentIndex++;
-  if (currentIndex >= questions.length) {
-    endGame();
-    return;
-  }
-  showTransition();
-}
-
-function showTransition() {
-  const screen = document.getElementById('transition-screen');
-  const numEl = document.getElementById('trans-num');
-  const totalEl = document.getElementById('trans-total');
-  const dots = [document.getElementById('tdot-0'), document.getElementById('tdot-1'), document.getElementById('tdot-2')];
-
-  numEl.textContent = currentIndex + 1;
-  totalEl.textContent = 'من ' + questions.length;
-  dots.forEach(d => d.classList.remove('active'));
-  screen.style.display = 'flex';
-
-  // Preload images while showing transition
-  const q = questions[currentIndex];
-  const imgSrcs = [q.image1, q.image2, q.image3, q.image4];
-  imgSrcs.forEach(src => { const i = new Image(); i.src = src; });
-
-  let elapsed = 0;
-  const interval = setInterval(() => {
-    elapsed++;
-    // Activate dots in reverse (3→2→1)
-    if (elapsed === 1) dots[2].classList.add('active');
-    if (elapsed === 2) { dots[2].classList.remove('active'); dots[1].classList.add('active'); }
-    if (elapsed === 3) { dots[1].classList.remove('active'); dots[0].classList.add('active'); }
-    if (elapsed > 3) {
-      clearInterval(interval);
-      screen.style.display = 'none';
-      loadQuestion();
-    }
-  }, 1000);
-}
-
-// ===== SKIP QUESTION =====
-function skipQuestion() {
-  clearInterval(timerInterval);
-  const q = questions[currentIndex];
-
-  // Reveal all images
-  for (let i = 0; i < 4; i++) revealImage(i);
-
-  const overlay = document.createElement('div');
-  overlay.className = 'result-overlay';
-  overlay.innerHTML = `
-    <div class="result-card skipped">
-      <span class="result-emoji-skip">🤔</span>
-      <div class="result-title" style="color:#ff6b35">انتهى الوقت!</div>
-      <div class="result-sub">لم يُجب أحد على هذا السؤال</div>
-      <div class="skip-answer-reveal">
-        <div class="skip-answer-label">الإجابة الصحيحة كانت</div>
-        <div class="skip-answer-text">${q.answer}</div>
-      </div>
-      <button class="btn-next" onclick="nextQuestion(this.closest('.result-overlay'))">السؤال التالي ←</button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-}
-
 // ===== END GAME =====
-async function endGame() {
+async function endGame(){
   clearInterval(timerInterval);
-
-  if (sessionId) {
-    await sb.from('game_sessions').update({
-      team1_score: game.score1,
-      team2_score: game.score2,
-      status: 'finished'
-    }).eq('id', sessionId);
-  }
+  if(activeModal)closeModal();
 
   let winner;
-  if (game.score1 > game.score2) winner = game.team1;
-  else if (game.score2 > game.score1) winner = game.team2;
-  else winner = 'تعادل! 🤝';
+  if(score1>score2)winner=team1;
+  else if(score2>score1)winner=team2;
+  else winner='تعادل! 🤝';
 
-  document.getElementById('winner-name').textContent = winner;
-  document.getElementById('final-name1').textContent = game.team1;
-  document.getElementById('final-name2').textContent = game.team2;
-  document.getElementById('final-pts1').textContent = game.score1;
-  document.getElementById('final-pts2').textContent = game.score2;
-
-  if (game.score1 > game.score2) document.getElementById('final-card1').classList.add('winner');
-  else if (game.score2 > game.score1) document.getElementById('final-card2').classList.add('winner');
+  document.getElementById('final-winner').textContent=winner;
+  document.getElementById('final-cards').innerHTML=`
+    <div class="final-card${score1>=score2&&score1>0?' winner':''}">
+      <div class="fc-name">${team1}</div>
+      <div class="fc-pts pts-t1">${score1}</div>
+    </div>
+    <div class="final-card${score2>score1?' winner':''}">
+      <div class="fc-name">${team2}</div>
+      <div class="fc-pts pts-t2">${score2}</div>
+    </div>`;
 
   showScreen('final-screen');
-  setTimeout(confetti, 300);
-  setTimeout(confetti, 700);
+  setTimeout(confetti,300);
+  setTimeout(confetti,800);
 }
 
-function resetGame() {
-  game.score1 = 0;
-  game.score2 = 0;
-  currentIndex = 0;
-  sessionId = null;
-  questions = shuffle(questions);
-  showScreen('setup-screen');
+function restartGame(){showScreen('register-screen');}
+
+// ===== CONFETTI =====
+function confetti(){
+  const cols=['#f5c842','#00d4ff','#ff4d6d','#00e676','#fff','#c084fc'];
+  for(let i=0;i<70;i++){
+    const el=document.createElement('div');
+    el.className='cfetti';
+    el.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${cols[Math.floor(Math.random()*cols.length)]};width:${5+Math.random()*8}px;height:${5+Math.random()*8}px;border-radius:${Math.random()>.5?'50%':'2px'};animation-duration:${2+Math.random()*2}s;animation-delay:${Math.random()*0.6}s;`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),4000);
+  }
 }
 
 // ===== TOAST =====
-function showToast(msg, type = '') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show ' + type;
-  setTimeout(() => t.className = 'toast', 2500);
-}
-
-// ===== CONFETTI =====
-function confetti() {
-  const colors = ['#f5c842', '#00d4ff', '#ff4d6d', '#00e676', '#ffffff'];
-  for (let i = 0; i < 60; i++) {
-    const el = document.createElement('div');
-    el.className = 'confetti-piece';
-    el.style.cssText = `
-      left: ${Math.random() * 100}vw;
-      top: -10px;
-      background: ${colors[Math.floor(Math.random() * colors.length)]};
-      width: ${6 + Math.random() * 8}px;
-      height: ${6 + Math.random() * 8}px;
-      border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
-      animation-duration: ${2 + Math.random() * 2}s;
-      animation-delay: ${Math.random() * 0.5}s;
-    `;
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 4000);
-  }
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show '+type;
+  setTimeout(()=>t.className='toast',2800);
 }
 
 init();
