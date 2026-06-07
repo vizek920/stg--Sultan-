@@ -723,6 +723,45 @@
     transition: color 0.3s;
   }
   .admin-link:hover { color: var(--muted); }
+
+  /* SKIP BUTTON */
+  .btn-skip {
+    padding: 12px 28px;
+    background: transparent;
+    border: 2px solid #ff6b35;
+    border-radius: 12px;
+    color: #ff6b35;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Cairo', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 14px;
+  }
+  .btn-skip:hover {
+    background: rgba(255,107,53,0.1);
+    box-shadow: 0 0 20px rgba(255,107,53,0.2);
+    transform: translateY(-1px);
+  }
+
+  /* SKIP RESULT CARD */
+  .result-card.skipped { border-color: rgba(255,107,53,0.4); }
+  .result-card.skipped .result-emoji-skip { font-size: 70px; display: block; margin-bottom: 16px; }
+  .skip-answer-reveal {
+    background: rgba(245,200,66,0.08);
+    border: 1px solid rgba(245,200,66,0.3);
+    border-radius: 16px;
+    padding: 20px 30px;
+    margin: 16px 0 24px;
+  }
+  .skip-answer-label { font-size: 12px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .skip-answer-text {
+    font-size: 36px;
+    font-weight: 900;
+    font-family: 'Tajawal', sans-serif;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(245,200,66,0.4);
+  }
 </style>
 </head>
 <body>
@@ -853,6 +892,9 @@
       <button class="btn-team t1" id="btn-t1" onclick="submitAnswer(1)">✓ <span id="btn-t1-name">الفريق الأول</span> أجاب</button>
       <button class="btn-team t2" id="btn-t2" onclick="submitAnswer(2)">✓ <span id="btn-t2-name">الفريق الثاني</span> أجاب</button>
     </div>
+
+    <button class="btn-skip" id="skip-btn" onclick="skipQuestion()">⏭ تخطي السؤال</button>
+
   </div>
 </div>
 
@@ -1156,6 +1198,31 @@ function nextQuestion(overlay) {
   overlay.remove();
   currentIndex++;
   loadQuestion();
+}
+
+// ===== SKIP QUESTION =====
+function skipQuestion() {
+  clearInterval(timerInterval);
+  const q = questions[currentIndex];
+
+  // Reveal all images
+  for (let i = 0; i < 4; i++) revealImage(i);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'result-overlay';
+  overlay.innerHTML = `
+    <div class="result-card skipped">
+      <span class="result-emoji-skip">🤔</span>
+      <div class="result-title" style="color:#ff6b35">انتهى الوقت!</div>
+      <div class="result-sub">لم يُجب أحد على هذا السؤال</div>
+      <div class="skip-answer-reveal">
+        <div class="skip-answer-label">الإجابة الصحيحة كانت</div>
+        <div class="skip-answer-text">${q.answer}</div>
+      </div>
+      <button class="btn-next" onclick="nextQuestion(this.closest('.result-overlay'))">السؤال التالي ←</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
 }
 
 // ===== END GAME =====
