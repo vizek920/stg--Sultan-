@@ -331,7 +331,11 @@
     width: 100%; height: 100%;
     object-fit: cover;
     display: block;
-    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .img-cell img.loaded {
+    opacity: 1;
   }
 
   .img-overlay {
@@ -1029,19 +1033,44 @@ function loadQuestion() {
   // Points
   updatePoints();
 
-  // Images — reset all to hidden first
+  // Images — clear src and hide completely first
+  const imgSrcs = [q.image1, q.image2, q.image3, q.image4];
+  let loadedCount = 0;
+
   ['img-0','img-1','img-2','img-3'].forEach((id, i) => {
-    document.getElementById(id).src = [q.image1, q.image2, q.image3, q.image4][i];
+    const imgEl = document.getElementById(id);
+    imgEl.classList.remove('loaded');
+    imgEl.src = '';
     const overlay = document.getElementById(`overlay-${i}`);
     overlay.className = 'img-overlay hidden-overlay';
     document.getElementById(`cell-${i}`).classList.remove('revealed');
   });
 
-  // Reveal first image
-  revealImage(0);
-
-  // Start timer
-  startTimer();
+  // Load all images in background, then reveal first
+  imgSrcs.forEach((src, i) => {
+    const imgEl = document.getElementById(`img-${i}`);
+    const tempImg = new Image();
+    tempImg.onload = () => {
+      imgEl.src = src;
+      imgEl.classList.add('loaded');
+      loadedCount++;
+      // Once first image fully loaded, reveal it
+      if (i === 0) {
+        revealImage(0);
+        startTimer();
+      }
+    };
+    tempImg.onerror = () => {
+      imgEl.src = src; // show anyway even if error
+      imgEl.classList.add('loaded');
+      loadedCount++;
+      if (i === 0) {
+        revealImage(0);
+        startTimer();
+      }
+    };
+    tempImg.src = src;
+  });
 }
 
 function revealImage(index) {
