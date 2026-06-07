@@ -331,11 +331,14 @@
     width: 100%; height: 100%;
     object-fit: cover;
     display: block;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    filter: blur(40px);
+    transform: scale(1.15);
+    transition: filter 0.8s ease, transform 0.8s ease;
   }
-  .img-cell img.loaded {
-    opacity: 1;
+
+  .img-cell.revealed img {
+    filter: blur(0px);
+    transform: scale(1);
   }
 
   .img-overlay {
@@ -861,6 +864,7 @@
     <div class="vs-divider">⚔️ VS ⚔️</div>
 
     <button class="btn-start" onclick="startGame()">🚀 ابدأ اللعبة</button>
+    <a href="questions.html" style="display:block; margin-top:14px; text-align:center; color:var(--muted); font-size:14px; text-decoration:none; transition:color 0.3s;" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--muted)'">🎯 اختيار أسئلة محددة</a>
   </div>
 </div>
 
@@ -1024,6 +1028,45 @@ const POINTS = [200, 150, 100, 50];
 
 // ===== INIT =====
 async function init() {
+  // Check if coming from questions selector
+  const savedIds = sessionStorage.getItem('game_questions');
+  const savedT1  = sessionStorage.getItem('game_team1');
+  const savedT2  = sessionStorage.getItem('game_team2');
+
+  if (savedIds) {
+    sessionStorage.removeItem('game_questions');
+    sessionStorage.removeItem('game_team1');
+    sessionStorage.removeItem('game_team2');
+
+    const ids = JSON.parse(savedIds);
+    const { data, error } = await sb.from('questions').select('*').in('id', ids).eq('active', true);
+    document.getElementById('loading').style.display = 'none';
+
+    if (error || !data?.length) {
+      showScreen('setup-screen');
+      showToast('⚠️ خطأ في تحميل الأسئلة', 'wrong');
+      return;
+    }
+
+    // Keep order as selected
+    questions = ids.map(id => data.find(q => q.id === id)).filter(Boolean);
+
+    if (savedT1) document.getElementById('team1-input').value = savedT1;
+    if (savedT2) document.getElementById('team2-input').value = savedT2;
+
+    // Auto-start
+    game.team1 = savedT1 || 'الفريق الأول';
+    game.team2 = savedT2 || 'الفريق الثاني';
+    game.score1 = 0;
+    game.score2 = 0;
+    currentIndex = 0;
+    updateScoreboard();
+    showScreen('game-screen');
+    loadQuestion();
+    return;
+  }
+
+  // Normal flow - load all questions
   const { data, error } = await sb.from('questions').select('*').eq('active', true).order('id');
   document.getElementById('loading').style.display = 'none';
 
@@ -1106,44 +1149,21 @@ function loadQuestion() {
   // Points
   updatePoints();
 
-  // Images — clear src and hide completely first
+  // Images — set src with blur, overlay handles hiding
   const imgSrcs = [q.image1, q.image2, q.image3, q.image4];
-  let loadedCount = 0;
-
   ['img-0','img-1','img-2','img-3'].forEach((id, i) => {
     const imgEl = document.getElementById(id);
-    imgEl.classList.remove('loaded');
-    imgEl.src = '';
+    imgEl.src = imgSrcs[i];
     const overlay = document.getElementById(`overlay-${i}`);
     overlay.className = 'img-overlay hidden-overlay';
     document.getElementById(`cell-${i}`).classList.remove('revealed');
   });
 
-  // Load all images in background, then reveal first
-  imgSrcs.forEach((src, i) => {
-    const imgEl = document.getElementById(`img-${i}`);
-    const tempImg = new Image();
-    tempImg.onload = () => {
-      imgEl.src = src;
-      imgEl.classList.add('loaded');
-      loadedCount++;
-      // Once first image fully loaded, reveal it
-      if (i === 0) {
-        revealImage(0);
-        startTimer();
-      }
-    };
-    tempImg.onerror = () => {
-      imgEl.src = src; // show anyway even if error
-      imgEl.classList.add('loaded');
-      loadedCount++;
-      if (i === 0) {
-        revealImage(0);
-        startTimer();
-      }
-    };
-    tempImg.src = src;
-  });
+  // Reveal first image
+  revealImage(0);
+
+  // Start timer
+  startTimer();
 }
 
 function revealImage(index) {
