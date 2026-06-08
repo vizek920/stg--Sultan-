@@ -5,7 +5,69 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة الأدمن - خمّن الكلمة</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+// ===== MANUAL POINTS =====
+let manualSessions = [];
+
+async function openPtsModal() {
+  // Load recent active sessions
+  const { data } = await sb.from('game_sessions')
+    .select('*').eq('status', 'playing')
+    .order('created_at', { ascending: false }).limit(5);
+
+  manualSessions = data || [];
+
+  const overlay = document.getElementById('pts-modal-overlay');
+
+  if (manualSessions.length > 0) {
+    const s = manualSessions[0];
+    document.getElementById('pm-t1-name').textContent = s.team1_name;
+    document.getElementById('pm-t2-name').textContent = s.team2_name;
+    document.getElementById('pm-t1-cur').textContent = s.team1_score;
+    document.getElementById('pm-t2-cur').textContent = s.team2_score;
+    document.getElementById('pm-t1-input').value = s.team1_score;
+    document.getElementById('pm-t2-input').value = s.team2_score;
+  } else {
+    document.getElementById('pm-t1-name').textContent = 'الفريق الأول';
+    document.getElementById('pm-t2-name').textContent = 'الفريق الثاني';
+    document.getElementById('pm-t1-cur').textContent = '—';
+    document.getElementById('pm-t2-cur').textContent = '—';
+    document.getElementById('pm-t1-input').value = '';
+    document.getElementById('pm-t2-input').value = '';
+  }
+
+  overlay.style.display = 'flex';
+}
+
+function closePtsModal() {
+  document.getElementById('pts-modal-overlay').style.display = 'none';
+}
+
+async function savePtsManual() {
+  const v1 = parseInt(document.getElementById('pm-t1-input').value);
+  const v2 = parseInt(document.getElementById('pm-t2-input').value);
+
+  if (isNaN(v1) || isNaN(v2) || v1 < 0 || v2 < 0) {
+    showToast('⚠️ أدخل أرقاماً صحيحة', 'error'); return;
+  }
+
+  if (manualSessions.length > 0) {
+    const { error } = await sb.from('game_sessions').update({
+      team1_score: v1,
+      team2_score: v2
+    }).eq('id', manualSessions[0].id);
+
+    if (error) { showToast('خطأ: ' + error.message, 'error'); return; }
+  }
+
+  document.getElementById('pm-t1-cur').textContent = v1;
+  document.getElementById('pm-t2-cur').textContent = v2;
+
+  showToast(`✅ تم التحديث: ${v1} | ${v2}`, 'success');
+  closePtsModal();
+}
+
+</script>
 <style>
   :root {
     --bg: #0a0a0f;
@@ -456,6 +518,103 @@
     margin: 40px auto;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* MANUAL POINTS */
+  .pts-modal-overlay {
+    position: fixed; inset: 0; z-index: 400;
+    background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  .pts-modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 36px 40px;
+    width: 100%; max-width: 460px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes popIn { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
+
+  .pts-modal-title {
+    font-size: 20px; font-weight: 900;
+    color: var(--gold); margin-bottom: 6px; text-align: center;
+  }
+  .pts-modal-sub { font-size: 13px; color: var(--muted); text-align: center; margin-bottom: 28px; }
+
+  .pts-teams-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+
+  .pts-team-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    text-align: center;
+    transition: border-color 0.3s;
+  }
+  .pts-team-card.t1 { border-color: rgba(0,212,255,0.3); }
+  .pts-team-card.t2 { border-color: rgba(255,77,109,0.3); }
+
+  .pts-team-name { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+  .pts-team-name.t1c { color: #00d4ff; }
+  .pts-team-name.t2c { color: #ff4d6d; }
+
+  .pts-current {
+    font-family: 'Tajawal', sans-serif;
+    font-size: 36px; font-weight: 900;
+    margin-bottom: 10px; display: block;
+  }
+  .pts-current.t1c { color: #00d4ff; }
+  .pts-current.t2c { color: #ff4d6d; }
+
+  .pts-input {
+    width: 100%;
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 18px; font-weight: 900;
+    font-family: 'Tajawal', sans-serif;
+    color: var(--text);
+    text-align: center;
+    transition: border-color 0.3s;
+  }
+  .pts-input.t1:focus { border-color: #00d4ff; outline: none; }
+  .pts-input.t2:focus { border-color: #ff4d6d; outline: none; }
+
+  .pts-modal-actions { display: flex; gap: 10px; }
+  .btn-pts-save {
+    flex: 1; padding: 14px;
+    background: linear-gradient(135deg, var(--gold), var(--gold2));
+    color: #000; font-size: 16px; font-weight: 900;
+    font-family: 'Cairo', sans-serif;
+    border: none; border-radius: 12px; cursor: pointer;
+    transition: all 0.3s;
+  }
+  .btn-pts-save:hover { transform: translateY(-1px); }
+  .btn-pts-cancel {
+    padding: 14px 20px;
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 12px; color: var(--muted);
+    font-family: 'Cairo', sans-serif; font-size: 14px;
+    cursor: pointer; transition: all 0.3s;
+  }
+  .btn-pts-cancel:hover { border-color: var(--red); color: var(--red); }
+
+  .btn-pts-open {
+    padding: 8px 18px;
+    background: rgba(245,200,66,0.1);
+    border: 1px solid rgba(245,200,66,0.3);
+    border-radius: 8px;
+    color: var(--gold);
+    font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.3s;
+  }
+  .btn-pts-open:hover { background: rgba(245,200,66,0.2); }
+
 </style>
 </head>
 <body>
@@ -481,6 +640,7 @@
     </div>
     <div class="header-actions">
       <div class="stat-badge">الأسئلة: <strong id="total-count">—</strong></div>
+      <button class="btn-pts-open" onclick="openPtsModal()">✏️ تعديل النقاط</button>
       <a href="index.html" class="btn-game-link">▶ الذهاب للعبة</a>
       <button class="btn-logout" onclick="logout()">خروج</button>
     </div>
@@ -725,8 +885,15 @@ async function toggleQuestion(id, current) {
 // DELETE
 async function deleteQuestion(id) {
   if (!confirm('هل تريد حذف هذا السؤال نهائياً؟')) return;
-  const { error } = await sb.from('questions').delete().eq('id', id);
-  if (error) { showToast('خطأ في الحذف', 'error'); return; }
+
+  // Delete related answers first (foreign key)
+  const { error: e1 } = await sb.from('answers').delete().eq('question_id', id);
+  if (e1) { showToast('خطأ: ' + e1.message, 'error'); return; }
+
+  // Now delete question
+  const { error: e2 } = await sb.from('questions').delete().eq('id', id);
+  if (e2) { showToast('خطأ في الحذف: ' + e2.message, 'error'); return; }
+
   showToast('🗑 تم الحذف', 'success');
   loadQuestions();
 }
@@ -762,5 +929,30 @@ function showToast(msg, type = '') {
   setTimeout(() => t.className = 'toast', 3000);
 }
 </script>
+
+<!-- MANUAL POINTS MODAL -->
+<div id="pts-modal-overlay" class="pts-modal-overlay" style="display:none" onclick="if(event.target===this)closePtsModal()">
+  <div class="pts-modal">
+    <div class="pts-modal-title">✏️ تعديل النقاط يدوياً</div>
+    <div class="pts-modal-sub">غيّر نقاط أي فريق مباشرة</div>
+    <div class="pts-teams-grid">
+      <div class="pts-team-card t1">
+        <div class="pts-team-name t1c" id="pm-t1-name">الفريق الأول</div>
+        <span class="pts-current t1c" id="pm-t1-cur">—</span>
+        <input class="pts-input t1" id="pm-t1-input" type="number" min="0" placeholder="0">
+      </div>
+      <div class="pts-team-card t2">
+        <div class="pts-team-name t2c" id="pm-t2-name">الفريق الثاني</div>
+        <span class="pts-current t2c" id="pm-t2-cur">—</span>
+        <input class="pts-input t2" id="pm-t2-input" type="number" min="0" placeholder="0">
+      </div>
+    </div>
+    <div class="pts-modal-actions">
+      <button class="btn-pts-cancel" onclick="closePtsModal()">إلغاء</button>
+      <button class="btn-pts-save" onclick="savePtsManual()">💾 حفظ النقاط</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
