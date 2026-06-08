@@ -736,12 +736,12 @@ body{background:var(--bg);color:var(--text);font-family:'Cairo',sans-serif;min-h
     <div class="glass-card">
       <div class="teams-vs">
         <div class="team-col">
-          <span class="team-label-top lbl-t1">⚡ بريدة</span>
+          <span class="team-label-top lbl-t1">⚡ عنيزة </span>
           <input class="team-input t1" id="t1-name" type="text" placeholder="الفريق الأول" value="الفريق الأول">
         </div>
         <div class="vs-badge">⚔️<br>VS</div>
         <div class="team-col">
-          <span class="team-label-top lbl-t2">🔥 عنيزة</span>
+          <span class="team-label-top lbl-t2">🔥بريدة </span>
           <input class="team-input t2" id="t2-name" type="text" placeholder="الفريق الثاني" value="الفريق الثاني">
         </div>
       </div>
@@ -924,7 +924,7 @@ let sessionId=null;
 
 // ===== INIT =====
 async function init(){
-  const{data,error}=await sb.from('questions').select('*').eq('active',true).order('category').order('id');
+  const{data,error}=await sb.from('questions').select('*').eq('active',true).order('id',{ascending:true});
   document.getElementById('loading-screen').style.display='none';
   if(error||!data?.length){showToast('⚠️ لا توجد أسئلة في قاعدة البيانات','err');showScreen('register-screen');return;}
   allQ=data;
@@ -944,13 +944,13 @@ function setWanted(n,el){
 }
 
 function goToSelect(){
-  team1=document.getElementById('t1-name').value.trim()||'الفريق الأول';
-  team2=document.getElementById('t2-name').value.trim()||'الفريق الثاني';
+  team1=document.getElementById('t1-name').value.trim()||'عنيزة';
+  team2=document.getElementById('t2-name').value.trim()||'بريدة';
   score1=0;score2=0;answeredIds.clear();skippedIds.clear();
 
   // Pick questions
   const count=wantedCount>=999?allQ.length:Math.min(wantedCount,allQ.length);
-  sessionQ=[...allQ].sort(()=>Math.random()-0.5).slice(0,count);
+  sessionQ=[...allQ].slice(0,count); // ترتيب من الأقدم للأجدد حسب ID
 
   buildCatTabs();
   updateSelectScreen();
